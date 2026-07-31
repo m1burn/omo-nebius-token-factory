@@ -1,0 +1,56 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "lsp": true,
+  "model": "nebius/moonshotai/Kimi-K2.6",
+  "plugin": ["./plugins/agentmemory-capture.ts"],
+  "provider": {
+    "nebius": {
+      "models": {
+        "moonshotai/Kimi-K2.6": {
+          "name": "Kimi-K2.6",
+          "family": "kimi",
+          "release_date": "2026-05-20",
+          "attachment": true,
+          "reasoning": true,
+          "tool_call": true,
+          "temperature": true,
+          "cost": {
+            "input": 0.95,
+            "output": 4
+          },
+          "limit": {
+            "context": 256000,
+            "input": 256000,
+            "output": 256000
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "interleaved": {
+            "field": "reasoning_content"
+          },
+          "provider": {
+            "api": "https://api.tokenfactory.us-central1.nebius.com/v1/"
+          }
+        }
+      }
+    }
+  },
+  "mcp": {
+    "agentmemory": {
+      "type": "local",
+      "command": ["npx", "-y", "@agentmemory/mcp"]
+    },
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@playwright/mcp@latest"],
+      "args": ["--headless", "--browser", "chromium", "--no-sandbox"]
+    }
+  }
+}

@@ -1,22 +1,23 @@
-# Nebius Token Factory - oh-my-openagent
+# oh-my-openagent - AI Development Environment
 
-Docker-based development environment for Nebius Token Factory with pre-configured AI tools.
+Docker-based development environment with pre-configured **OpenCode**, **oh-my-openagent**, **agentmemory**, and **Nebius Token Factory** integration.
 
 ## What is this project
 
-This is a Docker container that provides a ready-to-use development environment for AI-assisted software engineering using **OpenCode** and **oh-my-openagent**. It includes:
+This container provides a ready-to-use development environment for AI-assisted software engineering. It includes:
 
-- **OpenCode** - TUI coding agent for AI-assisted development
-- **oh-my-openagent** - Enhanced agent framework for complex tasks
-- **agentmemory** - Persistent memory across sessions
-- **Nebius Token Factory** - Pre-configured to use available Nebius Token Factory models
+- **OpenCode** — TUI coding agent for AI-assisted development
+- **oh-my-openagent** — Enhanced agent framework with specialized agents
+- **agentmemory** — Persistent memory across sessions with semantic search and knowledge graph
+- **Nebius Token Factory** — Pre-configured with Kimi-K2.6, GLM-5.2, and MiniMax-M2.5 models
 
 ## Purpose
 
 Provides a consistent, containerized environment for AI-driven development workflows, enabling:
 - Interactive code editing and refactoring
-- Autonomous agent tasks
-- Persistent memory for context continuity
+- Autonomous agent tasks with memory persistence
+- Cross-session context continuity via agentmemory
+- Browser automation via Playwright MCP
 - Seamless integration with Nebius Token Factory
 
 ### Security sandbox
@@ -46,12 +47,14 @@ docker build -t omo .
 
 ### Important: Run from your project folder
 
-The container mounts your current working directory as the project folder. **You must run it from the root of your project** - this is the only folder the container (and thus the AI agent) will have access to.
+The container mounts your current working directory as the project folder. **You must run it from the root of your project** — this is the only folder the container (and thus the AI agent) will have access to.
 
 ```bash
 cd /path/to/your/project
-docker run --name omo -d -v "$PWD:/home/omo/project" --restart unless-stopped omo
+docker run --name omo -d -v "$PWD:/home/omo/project" -v "$HOME/.omo-agentmemory:/home/omo/.omo-agentmemory" --restart unless-stopped omo
 ```
+
+> **Note:** The second volume mount (`$HOME/.omo-agentmemory`) persists agentmemory data across container restarts, enabling cross-session memory continuity.
 
 ### Start a new opencode interactive session
 
@@ -67,6 +70,9 @@ When OpenCode starts for the first time, you need to enter your Nebius Token Fac
 2. Enter your Nebius Token Factory API key, hit Enter
 3. The key is automatically saved and applied for both opencode and agentmemory for persistent context
 
+> **Note:** The container runs an auth watcher that automatically syncs the Nebius API key from OpenCode's auth storage to agentmemory, so both tools share the same credentials without manual configuration.
+
+
 ## Pre-installed tools
 
 | Tool | Version |
@@ -78,11 +84,13 @@ When OpenCode starts for the first time, you need to enter your Nebius Token Fac
 | Bun | latest |
 | OpenCode | latest |
 | oh-my-openagent | latest |
-| agentmemory | 0.9.27 |
+| agentmemory | latest |
+| codegraph | latest |
+| Playwright + Chromium | latest |
+| iii | 0.11.2 |
 
 ### Configured Models
 
 - **Kimi-K2.6**: Primary model for most tasks (code editing, refactoring, exploration, writing)
 - **GLM-5.2**: Used by the Oracle agent for complex reasoning tasks
 - **MiniMax-M2.5**: Used for quick, simple tasks
-
