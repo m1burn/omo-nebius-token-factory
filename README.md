@@ -9,7 +9,7 @@ This container provides a ready-to-use development environment for AI-assisted s
 - **OpenCode** — TUI coding agent for AI-assisted development
 - **oh-my-openagent** — Enhanced agent framework with specialized agents
 - **agentmemory** — Persistent memory across sessions with semantic search and knowledge graph
-- **Nebius Token Factory** — Pre-configured with Kimi-K2.6, GLM-5.2, and MiniMax-M2.5 models
+- **Nebius Token Factory** — Pre-configured with Kimi-K2.7-Code, Kimi-K2.6, GLM-5.2, and MiniMax-M3 models
 
 ## Purpose
 
@@ -18,6 +18,7 @@ Provides a consistent, containerized environment for AI-driven development workf
 - Autonomous agent tasks with memory persistence
 - Cross-session context continuity via agentmemory
 - Browser automation via Playwright MCP
+- Warp terminal integration through the OpenCode Warp plugin
 - Seamless integration with Nebius Token Factory
 
 ### Security sandbox
@@ -37,30 +38,40 @@ This design allows you to let the coding agent run autonomously while minimizing
 
 ## Getting Started
 
-### Build the image
+### Build and run with Docker Compose
 
-If you need to build the image yourself:
+This is the quickest path. The agent can only see the directory you mount as the project folder, so replace `/path/to/your/project` with the actual directory you want to work on.
 
-```bash
-docker build -t omo .
-```
-
-### Important: Run from your project folder
-
-The container mounts your current working directory as the project folder. **You must run it from the root of your project** — this is the only folder the container (and thus the AI agent) will have access to.
+> **Note:** Create a `.env.secrets` file in the `omo-nebius-token-factory` directory before running the command below. Docker Compose references this file (it can be empty), and it is gitignored so it will not be committed:
+> ```bash
+> touch /path/to/omo-nebius-token-factory/.env.secrets
+> ```
+> You can add environment variables such as `AGENTMEMORY_SECRET` or `EXA_API_KEY` here to override defaults.
 
 ```bash
 cd /path/to/your/project
-docker run --name omo -d -v "$PWD:/home/omo/project" -v "$HOME/.omo-agentmemory:/home/omo/.omo-agentmemory" --restart unless-stopped omo
+docker compose -f /path/to/omo-nebius-token-factory/docker-compose.yml up -d
 ```
 
-> **Note:** The second volume mount (`$HOME/.omo-agentmemory`) persists agentmemory data across container restarts, enabling cross-session memory continuity.
+The current directory (`/path/to/your/project`) is mounted as `/home/omo/project` inside the container. This means:
+- You can keep the `omo-nebius-token-factory` repository anywhere on your machine.
+- Run the command above from whichever project folder you want the agent to edit.
+
+This builds the `omo` image if it does not exist, persists agentmemory data in `$HOME/.omo-agentmemory/data`, and publishes agentmemory services on the host loopback: HTTP API on port 3111, stream endpoint on port 3112, and the viewer dashboard on port 3113.
+
+> **Note:** The `$HOME/.omo-agentmemory/data` volume mount persists agentmemory data (including snapshots and the state store) across container restarts, enabling cross-session memory continuity.
 
 ### Start a new opencode interactive session
 
 ```bash
 docker exec -it -w /home/omo/project omo opencode
 ```
+
+### View the agentmemory dashboard
+
+Open [http://localhost:3113](http://localhost:3113) in your browser. The first API call returns `401`, and the viewer shows an inline authorization bar. Enter the `AGENTMEMORY_SECRET` value (default is `omo`, set in the Dockerfile and overridable via `.env.secrets`) and click **Unlock**.
+
+The viewer port is bound to the host loopback interface (`127.0.0.1:3113`) so it cannot be reached from other machines on the network.
 
 ### Enter your Nebius Token Factory API key
 
@@ -91,6 +102,7 @@ When OpenCode starts for the first time, you need to enter your Nebius Token Fac
 
 ### Configured Models
 
-- **Kimi-K2.6**: Primary model for most tasks (code editing, refactoring, exploration, writing)
-- **GLM-5.2**: Used by the Oracle agent for complex reasoning tasks
-- **MiniMax-M2.5**: Used for quick, simple tasks
+- **Kimi-K2.7-Code**: Primary model for most tasks (code editing, refactoring, exploration, writing)
+- **Kimi-K2.6**: Available configured model for general tasks
+- **GLM-5.2**: Used by the Oracle, Metis, and Momus agents for complex reasoning, planning, and review tasks
+- **MiniMax-M3**: Used by the Explore, Librarian, and Writing agents for quick, simple tasks

@@ -1,8 +1,11 @@
 #!/bin/bash
-set -eu
+set -eua
 
 DATA_DIR="/home/omo/.omo-agentmemory"
 AGENTMEMORY_ENV="/home/omo/.agentmemory/.env"
+
+# Source agentmemory env variables so they are available to all apps we run here.
+. "$AGENTMEMORY_ENV"
 
 # Start agentmemory in background
 mkdir -p "$DATA_DIR" && cd "$DATA_DIR"

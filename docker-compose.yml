@@ -1,0 +1,26 @@
+services:
+  omo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: omo:latest
+    container_name: omo
+    hostname: omo
+    volumes:
+      # The directory you run `docker compose` from becomes the project
+      # directory inside the container. cd into the project you want to work
+      # on before running this compose file.
+      - ${PWD}:/home/omo/project
+      - ${HOME}/.omo-agentmemory/data:/data
+    ports:
+      # The agentmemory is bound to 0.0.0.0 inside the container,
+      # but we only publish it on the host loopback so it is not reachable
+      # from other machines.
+      - "127.0.0.1:3111:3111"
+      - "127.0.0.1:3112:3112"
+      - "127.0.0.1:3113:3113"
+    working_dir: /home/omo/project
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    env_file: ".env.secrets"
