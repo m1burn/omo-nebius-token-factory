@@ -5,7 +5,7 @@
     "librarian": { "model": "nebius/MiniMaxAI/MiniMax-M3" },
     "explore": { "model": "nebius/MiniMaxAI/MiniMax-M3" },
     "multimodal-looker": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
-    "prometheus": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
+    "prometheus": { "model": "nebius/moonshotai/Kimi-K3" },
     "metis": { "model": "nebius/zai-org/GLM-5.2" },
     "momus": { "model": "nebius/zai-org/GLM-5.2" },
     "atlas": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },

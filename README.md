@@ -9,7 +9,7 @@ This container provides a ready-to-use development environment for AI-assisted s
 - **OpenCode** — TUI coding agent for AI-assisted development
 - **oh-my-openagent** — Enhanced agent framework with specialized agents
 - **agentmemory** — Persistent memory across sessions with semantic search and knowledge graph
-- **Nebius Token Factory** — Pre-configured with Kimi-K2.7-Code, Kimi-K2.6, GLM-5.2, and MiniMax-M3 models
+- **Nebius Token Factory** — Pre-configured with Kimi-K2.7-Code, Kimi-K3, Kimi-K2.6, GLM-5.2, MiniMax-M3, and DeepSeek-V4-Flash models
 
 ## Purpose
 
@@ -102,7 +102,9 @@ When OpenCode starts for the first time, you need to enter your Nebius Token Fac
 
 ### Configured Models
 
-- **Kimi-K2.7-Code**: Primary model for most tasks (code editing, refactoring, exploration, writing)
+- **Kimi-K2.7-Code**: Primary model for most tasks (code editing, refactoring, general reasoning)
+- **Kimi-K3**: Used by the Prometheus agent for planning, architecture, and high-context reasoning tasks
 - **Kimi-K2.6**: Available configured model for general tasks
 - **GLM-5.2**: Used by the Oracle, Metis, and Momus agents for complex reasoning, planning, and review tasks
 - **MiniMax-M3**: Used by the Explore, Librarian, and Writing agents for quick, simple tasks
+- **DeepSeek-V4-Flash**: Configured model for high-throughput, cost-efficient tasks

@@ -6,6 +6,35 @@
   "provider": {
     "nebius": {
       "models": {
+        "deepseek-ai/DeepSeek-V4-Flash": {
+          "name": "DeepSeek-V4-Flash",
+          "family": "DeepSeek-V4",
+          "release_date": "2026-07-31",
+          "attachment": false,
+          "reasoning": true,
+          "tool_call": true,
+          "temperature": false,
+          "cost": {
+            "input": 0.14,
+            "output": 0.28
+          },
+          "limit": {
+            "context": 1000000,
+            "input": 1000000,
+            "output": 393000
+          },
+          "modalities": {
+            "input": [
+              "text"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "provider": {
+            "api": "https://api.tokenfactory.us-central1.nebius.com/v1/"
+          }
+        },
         "MiniMaxAI/MiniMax-M3": {
           "name": "MiniMax-M3",
           "family": "MiniMaxAI",
