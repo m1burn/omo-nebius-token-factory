@@ -20,5 +20,10 @@
     "unspecified-low": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
     "unspecified-high": { "model": "nebius/zai-org/GLM-5.2" },
     "writing": { "model": "nebius/MiniMaxAI/MiniMax-M3" },
-  }
+  },
+  "browser_automation_engine": {
+    // Container has no display server: force headless Chromium with sandbox disabled.
+    // Chromium is provided by the Dockerfile (PLAYWRIGHT_BROWSERS_PATH=/ms-playwright).
+    "playwright_mcp_args": ["--headless", "--browser", "chromium", "--no-sandbox"],
+  },
 }
