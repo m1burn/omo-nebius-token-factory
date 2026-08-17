@@ -55,6 +55,19 @@
 #      (closed https://github.com/rohitg00/agentmemory/issues/124), which
 #      is why prune_semantic below is safe to use today.
 #
+#  [E] mem:insights is append-only: mem::reflect only ever writes it
+#      (src/functions/reflect.ts), and the sole kv.delete for the scope lives
+#      inside the import "replace" strategy (src/functions/export-import.ts)
+#      — retention-evict does NOT cover it (compare [D]). Observed 2026-08-14
+#      at 94MiB / 11,063 entries (~9KB avg): any full-scope enumeration then
+#      outgrows the bridge budget = defect [A], and in-run pruning never
+#      shrinks the physical file.
+#      - OPEN  https://github.com/rohitg00/agentmemory/issues/1133
+#        (mem::reflect unbounded enumeration, same failure class)
+#      => insights hard-cap tier below: physical archive + restart. Insights
+#         are derived state; future mem::reflect runs rebuild them, so no
+#         re-import step is required (recovery needs none, unlike [A]).
+#
 # Design note: snapshot-before-prune guarantees evicted/reset data stays
 # restorable from git history under $SNAPSHOT_DIR.
 set -u
@@ -65,6 +78,7 @@ ARCHIVE_DIR=/data/archive
 SEM_SOFT_BYTES=$((4  * 1024 * 1024))   # mem:semantic -> retention-evict
 GRAPH_SOFT_BYTES=$((15 * 1024 * 1024)) # graph:nodes -> mem::graph-reset
 GRAPH_HARD_BYTES=$((30 * 1024 * 1024)) # all graph *.bin -> physical wipe
+INSIGHTS_HARD_BYTES=$((16 * 1024 * 1024)) # mem:insights -> physical archive (see [E]; <18.7MiB empirically-fatal on this stack, see lsn_8c7424da07feeb0b)
 EVICT_THRESHOLD=0.55                   # retention-score cutoff; lower = keep more
 EVICT_MAX=1000                         # max evictions per prune pass
 PRUNE_INTERVAL=86400                   # daily pruning cadence
@@ -100,24 +114,45 @@ prune_semantic() {
   tri mem::retention-evict "{\"threshold\":$EVICT_THRESHOLD,\"maxEvict\":$EVICT_MAX}"
 }
 
+# setsid so the restarted agentmemory survives teardown of whatever shell
+# invoked the housekeeping pass (plain nohup died with the pass in practice).
+start_agentmemory() {
+  ( cd /home/omo/.omo-agentmemory && setsid agentmemory >/dev/null 2>&1 & )
+  wait_healthy || return 1
+}
+
 wipe_graph() {
   local dest="$ARCHIVE_DIR/graph-$(date +%Y%m%d-%H%M%S)"
   agentmemory stop >/dev/null 2>&1; sleep 3
   mkdir -p "$dest"; mv "$STATE_DIR"/mem%3Agraph%3A*.bin "$dest/" 2>/dev/null
-  cd /home/omo/.omo-agentmemory && nohup agentmemory >/dev/null 2>&1 &
-  wait_healthy || return 1
+  start_agentmemory
+}
+
+# [E] physical prune for mem:insights — the scope has no logical eviction
+# path, so over hard-cap it is archived and re-derived by future reflects.
+wipe_insights() {
+  local dest="$ARCHIVE_DIR/insights-$(date +%Y%m%d-%H%M%S)"
+  agentmemory stop >/dev/null 2>&1; sleep 3
+  mkdir -p "$dest"; mv "$STATE_DIR/mem%3Ainsights.bin" "$dest/" 2>/dev/null
+  start_agentmemory
 }
 
 prune() {
-  local sem="$STATE_DIR/mem%3Asemantic.bin" sem_size graph_size graph_nodes_size
+  local sem="$STATE_DIR/mem%3Asemantic.bin" sem_size graph_size graph_nodes_size insights_size
 
   sem_size=$(size "$sem")
   graph_size=$(size "$STATE_DIR"/mem%3Agraph%3A*.bin)
   graph_nodes_size=$(size "$STATE_DIR/mem%3Agraph%3Anodes.bin")
+  insights_size=$(size "$STATE_DIR/mem%3Ainsights.bin")
 
   if [ "$sem_size" -gt "$SEM_SOFT_BYTES" ]; then
     log "mem:semantic ${sem_size}B > soft cap; retention prune"
     snapshot "pre-semantic-prune"; prune_semantic
+  fi
+
+  if [ "$insights_size" -gt "$INSIGHTS_HARD_BYTES" ]; then
+    log "mem:insights ${insights_size}B > hard cap; physical archive (derived scope; reflect rebuilds)"
+    snapshot "pre-insights-wipe"; wipe_insights
   fi
 
   if [ "$graph_size" -gt "$GRAPH_HARD_BYTES" ]; then
@@ -129,7 +164,7 @@ prune() {
   fi
 
   local s f
-  for s in procedural lessons crystals insights; do
+  for s in procedural lessons crystals; do
     f="$STATE_DIR/mem%3A${s}.bin"
     [ "$(size "$f")" -gt "$SEM_SOFT_BYTES" ] && log "WARNING: mem:$s ($(size "$f")B) growing; prune manually"
   done
