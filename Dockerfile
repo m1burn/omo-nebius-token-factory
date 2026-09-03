@@ -54,6 +54,10 @@ RUN npx -y playwright-core install-deps chromium && \
     [ -f "$CHROME_PATH" ] || { echo "Chromium not found"; exit 1; } && \
     mkdir -p /opt/google/chrome && ln -sf "$CHROME_PATH" /opt/google/chrome/chrome
 
+# /data/snapshots is a bind-mounted volume whose host ownership differs from
+# the container user, so git's CVE-2022-24765 safe-directory check must permit it.
+RUN git config --system --add safe.directory /data/snapshots
+
 # Switch to omo user for opencode config and runtime
 USER omo
 WORKDIR /home/omo
