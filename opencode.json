@@ -1,22 +1,23 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "lsp": true,
+  "snapshot": false,
   "model": "nebius/moonshotai/Kimi-K2.7-Code",
   "plugin": ["./plugins/agentmemory-capture.ts", "@warp-dot-dev/opencode-warp"],
   "provider": {
     "nebius": {
       "models": {
-        "deepseek-ai/DeepSeek-V4-Flash-0731": {
-          "name": "DeepSeek-V4-Flash-0731",
-          "family": "DeepSeek-V4",
-          "release_date": "2026-07-31",
+        "deepseek-ai/DeepSeek-V4.1-Flash": {
+          "name": "DeepSeek-V4.1-Flash",
+          "family": "DeepSeek-V4.1",
+          "release_date": "2026-09-10",
           "attachment": false,
           "reasoning": true,
           "tool_call": true,
           "temperature": false,
           "cost": {
-            "input": 0.14,
-            "output": 0.28
+            "input": 0.30,
+            "output": 1.20
           },
           "limit": {
             "context": 1000000,
@@ -25,14 +26,15 @@
           },
           "modalities": {
             "input": [
-              "text"
+              "text",
+              "image"
             ],
             "output": [
               "text"
             ]
           },
           "provider": {
-            "api": "https://api.tokenfactory.us-central1.nebius.com/v1/"
+            "api": "https://api.tokenfactory.us-north1.nebius.com/v1/"
           }
         },
         "MiniMaxAI/MiniMax-M3": {
@@ -42,7 +44,7 @@
           "attachment": false,
           "reasoning": true,
           "tool_call": true,
-          "temperature": false,
+          "temperature": true,
           "cost": {
             "input": 0.30,
             "output": 1.20
@@ -71,7 +73,7 @@
           "attachment": true,
           "reasoning": true,
           "tool_call": true,
-          "temperature": false,
+          "temperature": true,
           "cost": {
             "input": 3,
             "output": 15
@@ -94,7 +96,7 @@
             "field": "reasoning_content"
           },
           "provider": {
-            "api": "https://api.tokenfactory.nebius.com/v1/"
+            "api": "https://api.tokenfactory.eu-west2.nebius.com/v1/"
           }
         },
         "moonshotai/Kimi-K2.7-Code": {
@@ -104,7 +106,7 @@
           "attachment": true,
           "reasoning": true,
           "tool_call": true,
-          "temperature": false,
+          "temperature": true,
           "cost": {
             "input": 0.95,
             "output": 4
@@ -130,14 +132,14 @@
             "api": "https://api.tokenfactory.us-central1.nebius.com/v1/"
           }
         },
-        "zai-org/GLM-5.2": {
-          "name": "GLM-5.2",
+        "zai-org/GLM-5.3": {
+          "name": "GLM-5.3",
           "family": "glm",
-          "release_date": "2026-06-16",
+          "release_date": "2026-08-28",
           "attachment": false,
           "reasoning": true,
           "tool_call": true,
-          "temperature": false,
+          "temperature": true,
           "cost": {
             "input": 1.40,
             "output": 4.40
@@ -159,7 +161,7 @@
             "field": "reasoning_content"
           },
           "provider": {
-            "api": "https://api.tokenfactory.uk-south1.nebius.com/v1/"
+            "api": "https://api.tokenfactory.us-north1.nebius.com/v1/"
           }
         },
         "zai-org/GLM-5.3-Flash": {
@@ -181,7 +183,8 @@
           },
           "modalities": {
             "input": [
-              "text"
+              "text",
+              "image"
             ],
             "output": [
               "text"
@@ -191,7 +194,7 @@
             "field": "reasoning_content"
           },
           "provider": {
-            "api": "https://api.tokenfactory.nebius.com/v1/"
+            "api": "https://api.tokenfactory.us-north1.nebius.com/v1/"
           }
         }
       }
