@@ -9,7 +9,7 @@ This container provides a ready-to-use development environment for AI-assisted s
 - **OpenCode** — TUI coding agent for AI-assisted development
 - **oh-my-openagent** — Enhanced agent framework with specialized agents
 - **agentmemory** — Persistent memory across sessions with semantic search and knowledge graph
-- **Nebius Token Factory** — Pre-configured with Kimi-K2.7-Code, Kimi-K3, Kimi-K2.6, GLM-5.2, MiniMax-M3, and DeepSeek-V4-Flash models
+- **Nebius Token Factory** — Pre-configured with Kimi-K2.7-Code, Kimi-K3, DeepSeek-V4.1-Flash, GLM-5.3, GLM-5.3-Flash, and MiniMax-M3 models
 
 ## Purpose
 
@@ -42,11 +42,11 @@ This design allows you to let the coding agent run autonomously while minimizing
 
 This is the quickest path. The agent can only see the directory you mount as the project folder, so replace `/path/to/your/project` with the actual directory you want to work on.
 
-> **Note:** Create a `.env.secrets` file in the `omo-nebius-token-factory` directory before running the command below. Docker Compose references this file (it can be empty), and it is gitignored so it will not be committed:
+> **Note:** Create a `.env.secrets` file in the `omo-nebius-token-factory` directory before running the command below. Docker Compose loads both `.env.agentmemory` (base configuration) and `.env.secrets` (user overrides). `.env.secrets` can be empty and is gitignored so it will not be committed:
 > ```bash
 > touch /path/to/omo-nebius-token-factory/.env.secrets
 > ```
-> You can add environment variables such as `AGENTMEMORY_SECRET` or `EXA_API_KEY` here to override defaults.
+> You can add environment variables such as `EXA_API_KEY`, `OPENAI_API_KEY`, or `NEBIUS_API_KEY` to `.env.secrets` to override defaults.
 
 ```bash
 cd /path/to/your/project
@@ -69,19 +69,21 @@ docker exec -it -w /home/omo/project omo opencode
 
 ### View the agentmemory dashboard
 
-Open [http://localhost:3113](http://localhost:3113) in your browser. The first API call returns `401`, and the viewer shows an inline authorization bar. Enter the `AGENTMEMORY_SECRET` value (default is `omo`, set in the Dockerfile and overridable via `.env.secrets`) and click **Unlock**.
+Open [http://localhost:3113](http://localhost:3113) in your browser. The first API call returns `401`, and the viewer shows an inline authorization bar. Enter the `AGENTMEMORY_SECRET` value (default is `omo`, set in `.env.agentmemory` and overridable via `.env.secrets`) and click **Unlock**.
 
 The viewer port is bound to the host loopback interface (`127.0.0.1:3113`) so it cannot be reached from other machines on the network.
 
 ### Enter your Nebius Token Factory API key
 
-When OpenCode starts for the first time, you need to enter your Nebius Token Factory API Key:
+Add your Nebius Token Factory API key to `.env.secrets` before starting the container:
 
-1. Type `/connect` and hit Enter, select Nebius as your provider
-2. Enter your Nebius Token Factory API key, hit Enter
-3. The key is automatically saved and applied for both opencode and agentmemory for persistent context
+```bash
+# In /path/to/omo-nebius-token-factory/.env.secrets
+OPENAI_API_KEY=your-nebius-token-factory-key
+NEBIUS_API_KEY=your-nebius-token-factory-key
+```
 
-> **Note:** The container runs an auth watcher that automatically syncs the Nebius API key from OpenCode's auth storage to agentmemory, so both tools share the same credentials without manual configuration.
+`docker-compose.yml` loads `.env.agentmemory` and `.env.secrets` into the container environment, so both OpenCode and agentmemory use these credentials automatically.
 
 
 ## Pre-installed tools
@@ -102,9 +104,9 @@ When OpenCode starts for the first time, you need to enter your Nebius Token Fac
 
 ### Configured Models
 
-- **Kimi-K2.7-Code**: Primary model for most tasks (code editing, refactoring, general reasoning)
-- **Kimi-K3**: Used by the Prometheus agent for planning, architecture, and high-context reasoning tasks
-- **Kimi-K2.6**: Available configured model for general tasks
-- **GLM-5.2**: Used by the Oracle, Metis, and Momus agents for complex reasoning, planning, and review tasks
-- **MiniMax-M3**: Used by the Explore, Librarian, and Writing agents for quick, simple tasks
-- **DeepSeek-V4-Flash**: Configured model for high-throughput, cost-efficient tasks
+- **Kimi-K2.7-Code**: Default model for most tasks (code editing, refactoring, general reasoning). Used by Sisyphus, Atlas, Sisyphus-Junior, and `unspecified-low` tasks.
+- **Kimi-K3**: Used by Prometheus, Metis, and the `visual-engineering`, `artistry`, and `writing` categories for planning, architecture, and high-context reasoning tasks.
+- **GLM-5.3**: Used by Oracle, Momus, and the `ultrabrain`, `deep`, and `unspecified-high` categories for complex reasoning, planning, and review tasks.
+- **GLM-5.3-Flash**: Available configured model for fast, cost-efficient reasoning tasks.
+- **DeepSeek-V4.1-Flash**: Used by Librarian, Explore, Multimodal-Looker, and the `quick` category for high-throughput search and simple tasks.
+- **MiniMax-M3**: Default model for agentmemory operations.

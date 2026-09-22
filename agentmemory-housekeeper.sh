@@ -1,8 +1,8 @@
 #!/bin/bash
-# agentmemory housekeeper — scheduled snapshots + hot-scope pruning.
+# agentmemory housekeeper — hot-scope pruning.
 #
 # Works around these un-fixed upstream defects (verified on agentmemory
-# 0.9.28 + iii-engine v0.11.2). REMOVE/ADJUST the matching block when the
+# 0.9.29 + iii-engine v0.11.2). REMOVE/ADJUST the matching block when the
 # issue is fixed upstream:
 #
 #  [A] Unbounded KV scopes kill the iii bridge. Consolidation appends
@@ -40,17 +40,6 @@
 #      => graph reset/wipe tiers below exist until capped reads work at
 #         any size and a physical vacuum lands.
 #
-#  [C] Snapshot scheduling is dead config: loadSnapshotConfig() reads
-#      SNAPSHOT_INTERVAL and the boot log prints "Git snapshots: <dir>
-#      (every 3600s)", but no code path anywhere calls mem::snapshot-create
-#      automatically, and agentmemory registers zero cron triggers — so
-#      SNAPSHOT_ENABLED=true alone never produces a single snapshot; only
-#      manual REST/MCP calls do. No upstream issue found at time of writing.
-#      => the snapshot ticker below implements what upstream intended:
-#         same SNAPSHOT_INTERVAL variable, same unit (seconds), same
-#         default (3600). Exists until upstream wires the real timer; the
-#         loop is also the only general scheduler (see [A]/[B]).
-#
 #  [D] Retention-evict only started covering mem:semantic in v0.8.10
 #      (closed https://github.com/rohitg00/agentmemory/issues/124), which
 #      is why prune_semantic below is safe to use today.
@@ -82,8 +71,6 @@ INSIGHTS_HARD_BYTES=$((16 * 1024 * 1024)) # mem:insights -> physical archive (se
 EVICT_THRESHOLD=0.55                   # retention-score cutoff; lower = keep more
 EVICT_MAX=1000                         # max evictions per prune pass
 PRUNE_INTERVAL=86400                   # daily pruning cadence
-
-SNAPSHOT_INTERVAL="${SNAPSHOT_INTERVAL:-3600}"   # via entrypoint set -a
 
 log()  { echo "[agentmemory_housekeeper] $(date -Is) $*"; }
 tri()  { iii trigger --function-id "$1" --payload "$2" 2>&1 | head -c 300; }
@@ -170,14 +157,10 @@ prune() {
   done
 }
 
-log "starting (snapshots every ${SNAPSHOT_INTERVAL}s, pruning every ${PRUNE_INTERVAL}s)"
-last_snapshot=0
+log "starting (pruning every ${PRUNE_INTERVAL}s)"
 last_prune=0
 while true; do
   now=$(date +%s)
-  if [ $((now - last_snapshot)) -ge "$SNAPSHOT_INTERVAL" ]; then
-    if wait_healthy; then snapshot "scheduled"; last_snapshot=$(date +%s); fi
-  fi
   if [ $((now - last_prune)) -ge "$PRUNE_INTERVAL" ]; then
     if wait_healthy; then prune; last_prune=$(date +%s); fi
   fi
