@@ -1,28 +1,24 @@
 # AGENTS.md
 
-## MEMORY-FIRST Protocol (MANDATORY — ZERO EXCEPTIONS)
+## Runtime environment
 
-Applies every turn without exception. No task too small, simple, or urgent to skip.
+- You run inside a Docker container. No direct host access.
+- Only `/home/omo/project` is shared with the host.
+- No shared auth sessions with the host. This blocks access to live environments. Ask the human to run commands/scripts there and post results back for validation.
+- Missing software? Install it inside the container yourself.
 
-### Mandatory First Action
+## MEMORY-FIRST Protocol
 
-Before ANY response, tool call, or reasoning — query memory. Includes trivial questions, greetings, one-line fixes, "quick" answers.
+Query memory first. Every turn. No exceptions.
 
-### Consequences of Non-Compliance
+1. Before any response or tool call, run `memory_recall` or `memory_smart_search`.
+2. Get relevant observations, lessons, and decisions.
+3. Then reason. Memory beats assumptions.
+4. Empty results? Say "No relevant memory found" and continue.
+5. No exemptions. Not for simple, quick, urgent, or cheap tasks.
 
-Skipping memory retrieval = protocol violation. Training data or "common knowledge" contradict project standards. Memory wins always.
-
-### Compliance Steps (Non-Negotiable)
-
-1. First action each turn: Call `memory_recall` or `memory_smart_search`.
-2. Query scope: Retrieve all relevant past observations, lessons, and decisions for current topic.
-3. After retrieval: Proceed with reasoning. Memory ALWAYS wins over assumption.
-4. Empty results: State "No relevant memory found" then proceed.
-5. No exemptions. Model size, task complexity, time pressure — none excuse skipping.
-
-### Common Failures (Strictly Prohibited)
-
-- Answering from training data before checking memory.
-- Treating memory as optional for "simple" or "obvious" tasks.
-- Calling memory and ignoring results.
-- Skipping retrieval for any reason, including speed or cost.
+Never:
+- Answer from training data before checking memory.
+- Treat memory as optional.
+- Ignore memory results.
+- Skip retrieval to save time or cost.
