@@ -31,9 +31,9 @@ RUN curl -fsSL "https://releases.hashicorp.com/terraform/1.13.1/terraform_1.13.1
     unzip -q /tmp/terraform.zip -d /usr/local/bin/ && \
     rm /tmp/terraform.zip
 
-# Install iii for agentmemory
+# Install iii for agentmemory.
 RUN case "$TARGETARCH" in arm64) III_ARCH=iii-aarch64-unknown-linux-gnu;; amd64) III_ARCH=iii-x86_64-unknown-linux-gnu;; *) echo "Unsupported: $TARGETARCH" >&2 && exit 1;; esac && \
-    curl -fsSL "https://github.com/iii-hq/iii/releases/download/iii/v0.11.2/${III_ARCH}.tar.gz" | tar -xz -C /usr/local/bin/
+    curl -fsSL "https://github.com/iii-hq/iii/releases/download/iii/v0.22.1/${III_ARCH}.tar.gz" | tar -xz -C /usr/local/bin/
 
 # Create omo user before installing other packages
 RUN addgroup --gid 1001 omo && \
@@ -71,7 +71,8 @@ RUN mkdir -p /home/omo/.omo
 COPY --chown=omo:omo omo.jsonc /home/omo/.omo/omo.jsonc
 
 # Configure agentmemory
-RUN mkdir -p /home/omo/.agentmemory
+RUN mkdir -p /home/omo/.agentmemory && \
+    cp /usr/local/lib/node_modules/@agentmemory/agentmemory/iii-config.docker.yaml /home/omo/.agentmemory/iii-config.docker.yaml
 COPY --chown=omo:omo agentmemory-housekeeper.sh /usr/local/bin/agentmemory_housekeeper
 RUN chmod +x /usr/local/bin/agentmemory_housekeeper
 
