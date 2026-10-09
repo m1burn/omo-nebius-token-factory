@@ -109,7 +109,8 @@ start_agentmemory() {
 }
 
 wipe_graph() {
-  local dest="$ARCHIVE_DIR/graph-$(date +%Y%m%d-%H%M%S)"
+  local dest
+  dest="$ARCHIVE_DIR/graph-$(date +%Y%m%d-%H%M%S)"
   agentmemory stop >/dev/null 2>&1; sleep 3
   mkdir -p "$dest"; mv "$STATE_DIR"/mem%3Agraph%3A*.bin "$dest/" 2>/dev/null
   start_agentmemory
@@ -118,7 +119,8 @@ wipe_graph() {
 # [E] physical prune for mem:insights — the scope has no logical eviction
 # path, so over hard-cap it is archived and re-derived by future reflects.
 wipe_insights() {
-  local dest="$ARCHIVE_DIR/insights-$(date +%Y%m%d-%H%M%S)"
+  local dest
+  dest="$ARCHIVE_DIR/insights-$(date +%Y%m%d-%H%M%S)"
   agentmemory stop >/dev/null 2>&1; sleep 3
   mkdir -p "$dest"; mv "$STATE_DIR/mem%3Ainsights.bin" "$dest/" 2>/dev/null
   start_agentmemory

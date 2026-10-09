@@ -8,35 +8,38 @@
       "hephaestus": {
         "model": "opencode/gpt-5-nano"
       },
-      // Main orchestrator: pinned to the session model from opencode.json.
-      // Builtin chain is claude-opus-5 (unavailable here) -> kimi-k3 -> gpt-5.6-sol -> glm-5.2,
-      // but the premium model stays out of the always-on main-agent slot by design
-      // (see docs/guide/agent-model-matching.md "Where to spend one scarce premium model").
+      // Main orchestrator: builtin chain is claude-opus-5-5 (unavailable here) -> kimi-k3
+      // -> gpt-5.6-sol -> glm-5.2; kimi-k3 is the first available rung and also the top
+      // rung of the framework's Recommended ladder present on Nebius. Pinned to the session
+      // model from opencode.json.
       "sisyphus": {
-        "model": "nebius/moonshotai/Kimi-K2.7-Code",
+        "model": "nebius/moonshotai/Kimi-K3",
         "ultrawork": {
-          "model": "nebius/moonshotai/Kimi-K2.7-Code"
+          "model": "nebius/moonshotai/Kimi-K3"
         }
       },
-      // High-IQ read-only consultant. Chain: gpt-5.6-sol xhigh -> gemini -> claude-opus-5 -> glm-5.2;
+      // High-IQ read-only consultant. Chain: gpt-5.6-sol xhigh -> gemini-3.1-pro -> claude-opus-5-5 -> glm-5.2;
       // GLM is the in-chain rung. Full GLM-5.3, not Flash: consultation needs sustained reasoning.
+      // (glm-5.2 now exists on Nebius but crawls at 25 tok/s; GLM-5.3 is its current-generation
+      // successor at 455 tok/s.)
       "oracle": {
         "model": "nebius/zai-org/GLM-5.3"
       },
       // Cheap/fast search lanes. Chains: gpt-5.6-luna-fast -> deepseek-v4-flash -> ... -> minimax-m3;
       // DeepSeek rung comes first among available models. "Search needs speed, not intelligence."
       "librarian": {
-        "model": "nebius/deepseek-ai/DeepSeek-V4.1-Flash"
+        "model": "nebius/deepseek-ai/DeepSeek-V4-Flash-0731"
       },
       "explore": {
-        "model": "nebius/deepseek-ai/DeepSeek-V4.1-Flash"
+        "model": "nebius/deepseek-ai/DeepSeek-V4-Flash-0731"
       },
-      // Image/PDF summarizer. Runtime vision gate (modalities.input includes "image") passes this
-      // model, and 1M context helps long PDFs. Low-effort role: keep it off the premium Kimi-K3 rung.
+      // Image/PDF summarizer. Chain: gpt-5.6-sol low -> kimi-k3 -> glm-4.6v -> gpt-5-nano;
+      // kimi-k3 is the first available rung and passes the runtime vision gate
       "multimodal-looker": {
-        "model": "nebius/deepseek-ai/DeepSeek-V4.1-Flash"
+        "model": "nebius/moonshotai/Kimi-K3"
       },
-      // Planner and pre-planning consultant. Chains: claude-fable-5-1 (unavailable) -> kimi-k3 max.
+      // Planner and pre-planning consultant. Chains: claude-fable-5-1 (unavailable)
+      // -> claude-opus-5-5 -> kimi-k3 max.
       "prometheus": {
         "model": "nebius/moonshotai/Kimi-K3"
       },
@@ -44,21 +47,24 @@
         "model": "nebius/moonshotai/Kimi-K3"
       },
       // Plan reviewer needs sustained reasoning (Flash/small models drift and rubber-stamp).
-      // Chain: gpt-6-astra xhigh -> ... -> glm-5.2; GLM-5.3 is the full-model analog.
+      // Chain: gpt-6-astra xhigh -> claude-opus-5-5 -> gemini-3.1-pro -> glm-5.2;
+      // GLM-5.3 is the full-model analog.
       "momus": {
         "model": "nebius/zai-org/GLM-5.3"
       },
-      // Executor workers. Chain: claude-sonnet-5 (unavailable) -> kimi-k3 -> gpt-5.6-sol medium -> minimax-m3;
-      // mid-tier code model fits the sonnet-5 slot without premium cost.
+      // Executor workers. Chain: claude-sonnet-5 (unavailable) -> kimi-k3 -> gpt-5.6-sol medium -> minimax;
+      // kimi-k3 is the first available rung and serves as the sonnet-5-class executor.
       "atlas": {
-        "model": "nebius/moonshotai/Kimi-K2.7-Code"
+        "model": "nebius/moonshotai/Kimi-K3"
       },
       "sisyphus-junior": {
-        "model": "nebius/moonshotai/Kimi-K2.7-Code"
+        "model": "nebius/moonshotai/Kimi-K3"
       }
     },
     "categories": {
-      // UI/creative/prose: kimi-k3 is the first available rung of these builtin chains.
+      // visual-engineering/artistry chains: fable-5-1 -> opus-5-5 -> kimi-k3 (first available rung).
+      // writing chain is Claude-only (opus-5-5 -> opus-4-6); kimi-k3 is the Claude-mirroring
+      // substitute per the model guide.
       "visual-engineering": {
         "model": "nebius/moonshotai/Kimi-K3"
       },
@@ -68,25 +74,53 @@
       "writing": {
         "model": "nebius/moonshotai/Kimi-K3"
       },
-      // GPT-shaped autonomous lanes (no GPT in catalog). The sibling unspecified-high chain
-      // ranks glm-5.3 ahead of kimi-k3 for this shape; Flash variant is too small for sustained reasoning.
+      // GPT-shaped autonomous lane gated on astra-class reasoning (gpt-6-astra/gpt-5.6-sol;
+      // none on Nebius, and gpt-oss-120b is too small for the gate). The guide marks
+      // ultrabrain on Claude or Kimi as risky, so the astra-class analog is GLM-5.3 — a
+      // Recommended-ladder rung that the sibling unspecified-high chain ranks ahead of
+      // kimi-k3 for this shape. Full model, not Flash: sustained reasoning.
       "ultrabrain": {
         "model": "nebius/zai-org/GLM-5.3"
       },
-      "deep": {
+      // GPT-shaped mid-tier reasoning lane. deep-low chain: gpt-6.1-sol medium -> ...
+      // (no GPT-6 on Nebius). The only OpenAI-family rung, gpt-oss-120b, serves at 40 tok/s —
+      // speed is a constraint on this default deep lane, so it takes GLM-5.3 (455 tok/s,
+      // 1M ctx): the same Claude-like Recommended-ladder reasoner the sibling reasoning
+      // lanes use.
+      "deep-low": {
         "model": "nebius/zai-org/GLM-5.3"
       },
+      // Escalation deep lane for decisions that cannot be settled from evidence alone.
+      // deep-high chain: gpt-6-astra high (no fallback rungs). The guide marks deep-high on
+      // Claude or Kimi as risky; GLM-5.3 is the astra-class reasoner among available models
+      // (Recommended-ladder rung, 750B, 455 tok/s).
+      "deep-high": {
+        "model": "nebius/zai-org/GLM-5.3"
+      },
+      // Chain: claude-opus-5-5 -> glm-5.3 max -> kimi-k3 max; glm-5.3 is the first available rung.
       "unspecified-high": {
         "model": "nebius/zai-org/GLM-5.3"
       },
       // Trivial tasks: deepseek-v4-flash rung of the quick chain (cheapest fast worker available).
       "quick": {
-        "model": "nebius/deepseek-ai/DeepSeek-V4.1-Flash"
+        "model": "nebius/deepseek-ai/DeepSeek-V4-Flash-0731"
       },
-      // Catch-all low-effort worker: sonnet-5/terra analog (mid-tier coder), not the premium rung.
+      // Catch-all low-effort worker. Chain: sonnet-5-5 -> mimo-v2.6-pro -> grok-4.7
+      // -> gpt-6.1/5.6-sol -> sonnet-5 -> qwen3.8-max-preview -> deepseek-v4-pro @max -> mimo-v2.5-pro;
+      // the in-chain deepseek-v4-pro rung serves at 24-37 tok/s — too slow for a worker lane.
+      // Kimi-K2.7-Code is the sonnet-5-class code executor (agentic coding specialist,
+      // 231 tok/s, image input): a reasonable fast worker.
       "unspecified-low": {
         "model": "nebius/moonshotai/Kimi-K2.7-Code"
       }
+    },
+    // Team Mode: parallel multi-agent coordination
+    "team_mode": {
+      "enabled": true,
+      "max_parallel_members": 8,
+      "max_members": 8,
+      // Team definitions + runtime state live under <base_dir>/teams/.
+      "base_dir": "/home/omo/project/.omo"
     },
     // User-layer-only key: walked project layers cannot set playwright_mcp_args.
     "browser_automation_engine": {

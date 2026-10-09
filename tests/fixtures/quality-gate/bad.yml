@@ -1,0 +1,16 @@
+# VIOLATIONS PLANTED FOR QUALITY-SMOKE (do not fix):
+# - syntax: hard tab used as indentation on the "schedule" line below
+# - indentation: wrong nesting (over-indented list item under "steps")
+# - line-length: the description line below exceeds 120 characters
+# - truthy: unquoted `on` value on legacy_toggle (plus a literal truthy: "true" pair)
+name: quality-smoke
+on:
+	schedule: nightly
+jobs:
+  build:
+    steps:
+        - name: misnested
+          run: echo nested-too-deep
+    description: this single line is intentionally made long enough to trip the yamllint line-length rule by sailing far past one hundred and twenty characters total
+    legacy_toggle: on
+    truthy: "true"
