@@ -43,6 +43,10 @@ RUN addgroup --gid 1001 omo && \
 RUN mkdir -p /usr/local/lib/node_modules/@agentmemory/agentmemory/node_modules/@xenova/transformers/.cache && \
     chown -R omo:omo /usr/local/lib/node_modules/@agentmemory/agentmemory/node_modules/@xenova/transformers/.cache
 
+# Pre-create and own the Hugging Face transformers cache dir used by agentmemory v0.9.29+
+RUN mkdir -p /usr/local/lib/node_modules/@agentmemory/agentmemory/node_modules/@huggingface/transformers/.cache && \
+    chown -R omo:omo /usr/local/lib/node_modules/@agentmemory/agentmemory/node_modules/@huggingface/transformers/.cache
+
 # Install chromium with dependencies for Playwright
 RUN npx -y playwright-core install-deps chromium && \
     npx -y playwright-core install chromium && \
