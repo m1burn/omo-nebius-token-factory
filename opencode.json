@@ -2,7 +2,7 @@
   "$schema": "https://opencode.ai/config.json",
   "lsp": true,
   "snapshot": false,
-  "model": "nebius/moonshotai/Kimi-K3",
+  "model": "nebius/moonshotai/Kimi-K3.1-Pro",
   "plugin": ["./plugins/agentmemory-capture.ts", "@warp-dot-dev/opencode-warp"],
   "provider": {
     "nebius": {
@@ -32,6 +32,7 @@
             "output": [
               "text"
             ]
+          }
         },
         "deepseek-ai/DeepSeek-V4.1-Flash-1017": {
           "name": "DeepSeek-V4.1-Flash-1017",
@@ -110,6 +111,36 @@
             "output": [
               "text"
             ]
+          }
+        },
+        "moonshotai/Kimi-K3.1-Pro": {
+          "name": "Kimi-K3.1-Pro",
+          "family": "kimi",
+          "release_date": "2026-10-23",
+          "attachment": true,
+          "reasoning": true,
+          "tool_call": true,
+          "temperature": true,
+          "cost": {
+            "input": 2,
+            "output": 10
+          },
+          "limit": {
+            "context": 1048576,
+            "input": 1048576,
+            "output": 131072
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "interleaved": {
+            "field": "reasoning_content"
           }
         },
         "moonshotai/Kimi-K3": {
@@ -228,6 +259,7 @@
           },
           "interleaved": {
             "field": "reasoning_content"
+          }
         },
         "meta-models/muse-spark-open": {
           "name": "Muse Spark Open",

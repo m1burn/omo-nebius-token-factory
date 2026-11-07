@@ -4,13 +4,19 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # Build omo with the host user's uid/gid so the bind-mounted tree
+      # (which keeps host ownership on Linux/WSL2) is writable inside
+      # the container.
+      args:
+        HOST_UID: ${HOST_UID:?HOST_UID is required — run up.sh}
+        HOST_GID: ${HOST_GID:?HOST_GID is required — run up.sh}
     image: omo:latest
     container_name: omo
     hostname: omo
     volumes:
-      # The directory you run `docker compose` from becomes the project
-      # directory inside the container. cd into the project you want to work
-      # on before running this compose file.
+      # The directory you run compose from becomes the project directory,
+      # always mounted at /home/omo/project inside the container. cd into
+      # the project you want to work on before running compose.
       - ${PWD}:/home/omo/project
       - ${HOME}/.omo-agentmemory/data:/data
     ports:

@@ -8,14 +8,14 @@
       "hephaestus": {
         "model": "opencode/gpt-5-nano"
       },
-      // Main orchestrator: builtin chain is claude-opus-5-5 (unavailable here) -> kimi-k3
-      // -> gpt-5.6-sol -> glm-5.2; kimi-k3 is the first available rung and also the top
-      // rung of the framework's Recommended ladder present on Nebius. GLM-5.3 sits
-      // behind kimi-k3 as fallback (the other Recommended-ladder model on Nebius;
-      // Daily - Normal ranks it right after kimi-k3).
+      // Main orchestrator: builtin chain is claude-opus-5-5 (unavailable here) -> kimi-k3.1-pro
+      // -> kimi-k3 -> gpt-5.6-sol -> glm-5.2; kimi-k3.1-pro is the first available rung and
+      // the framework's default Kimi (K3.1 Pro replaced K3 in every built-in chain). GLM-5.3
+      // sits behind kimi-k3.1-pro as fallback (the other Recommended-ladder model on Nebius;
+      // Daily - Normal ranks it right after kimi-k3.1-pro).
       "sisyphus": {
         "models": [
-          "nebius/moonshotai/Kimi-K3",
+          "nebius/moonshotai/Kimi-K3.1-Pro",
           "nebius/zai-org/GLM-5.3"
         ]
       },
@@ -43,11 +43,11 @@
           "nebius/zai-org/GLM-5.3-Flash"
         ]
       },
-      // Image/PDF/video summarizer. Chain: gpt-5.6-sol low -> kimi-k3 -> glm-4.6v -> gpt-5-nano.
+      // Image/PDF/video summarizer. Chain: gpt-5.6-sol low -> kimi-k3.1-pro -> glm-4.6v -> gpt-5-nano.
       // Muse Spark Open leads on visual benchmarks (ZeroBench 50 vs kimi 41) and is the
       // only roster model taking video/audio; pinned at low reasoning to keep its always-on
       // thinking from stalling simple descriptions (off-ladder, unvalidated prompt preset).
-      // kimi-k3 is the ladder-validated second rung. No GLM rung here: both GLM-5.3 and
+      // Kimi-K3.1-Pro is the ladder-validated second rung. No GLM rung here: both GLM-5.3 and
       // GLM-5.3-Flash serve text-only on this token factory.
       "multimodal-looker": {
         "models": [
@@ -55,20 +55,20 @@
             "model": "nebius/meta-models/muse-spark-open",
             "reasoning": "low"
           },
-          "nebius/moonshotai/Kimi-K3"
+          "nebius/moonshotai/Kimi-K3.1-Pro"
         ]
       },
       // Planner and pre-planning consultant. Chains: claude-fable-5-1 (unavailable)
-      // -> claude-opus-5-5 -> kimi-k3 max. GLM-5.3 sits behind kimi-k3 as fallback.
+      // -> claude-opus-5-5 -> kimi-k3.1-pro max. GLM-5.3 sits behind kimi-k3.1-pro as fallback.
       "prometheus": {
         "models": [
-          "nebius/moonshotai/Kimi-K3",
+          "nebius/moonshotai/Kimi-K3.1-Pro",
           "nebius/zai-org/GLM-5.3"
         ]
       },
       "metis": {
         "models": [
-          "nebius/moonshotai/Kimi-K3",
+          "nebius/moonshotai/Kimi-K3.1-Pro",
           "nebius/zai-org/GLM-5.3"
         ]
       },
@@ -78,41 +78,41 @@
       "momus": {
         "model": "nebius/zai-org/GLM-5.3"
       },
-      // Executor workers. Chain: claude-sonnet-5 (unavailable) -> kimi-k3 -> gpt-5.6-sol medium -> minimax;
-      // kimi-k3 is the first available rung and serves as the sonnet-5-class executor.
-      // GLM-5.3 sits behind kimi-k3 as fallback.
+      // Executor workers. Chain: claude-sonnet-5 (unavailable) -> kimi-k3.1-pro -> gpt-5.6-sol medium -> minimax;
+      // kimi-k3.1-pro is the first available rung and serves as the sonnet-5-class executor.
+      // GLM-5.3 sits behind kimi-k3.1-pro as fallback.
       "atlas": {
         "models": [
-          "nebius/moonshotai/Kimi-K3",
+          "nebius/moonshotai/Kimi-K3.1-Pro",
           "nebius/zai-org/GLM-5.3"
         ]
       },
       "sisyphus-junior": {
         "models": [
-          "nebius/moonshotai/Kimi-K3",
+          "nebius/moonshotai/Kimi-K3.1-Pro",
           "nebius/zai-org/GLM-5.3"
         ]
       }
     },
     "categories": {
-      // visual-engineering/artistry chains: fable-5-1 -> opus-5-5 -> kimi-k3 (first available rung).
-      // writing chain is Claude-only (opus-5-5 -> opus-4-6); kimi-k3 is the Claude-mirroring
-      // substitute per the model guide. GLM-5.3 sits behind kimi-k3 as fallback.
+      // visual-engineering/artistry chains: fable-5-1 -> opus-5-5 -> kimi-k3.1-pro (first available rung).
+      // writing chain is Claude-only (opus-5-5 -> opus-4-6); kimi-k3.1-pro is the Claude-mirroring
+      // substitute per the model guide. GLM-5.3 sits behind kimi-k3.1-pro as fallback.
       "visual-engineering": {
         "models": [
-          "nebius/moonshotai/Kimi-K3",
+          "nebius/moonshotai/Kimi-K3.1-Pro",
           "nebius/zai-org/GLM-5.3"
         ]
       },
       "artistry": {
         "models": [
-          "nebius/moonshotai/Kimi-K3",
+          "nebius/moonshotai/Kimi-K3.1-Pro",
           "nebius/zai-org/GLM-5.3"
         ]
       },
       "writing": {
         "models": [
-          "nebius/moonshotai/Kimi-K3",
+          "nebius/moonshotai/Kimi-K3.1-Pro",
           "nebius/zai-org/GLM-5.3"
         ]
       },
@@ -120,7 +120,7 @@
       // none on Nebius, and gpt-oss-120b is too small for the gate). The guide marks
       // ultrabrain on Claude or Kimi as risky, so the astra-class analog is GLM-5.3 — a
       // Recommended-ladder rung that the sibling unspecified-high chain ranks ahead of
-      // kimi-k3 for this shape. Full model, not Flash: sustained reasoning.
+      // kimi-k3.1-pro for this shape. Full model, not Flash: sustained reasoning.
       "ultrabrain": {
         "model": "nebius/zai-org/GLM-5.3"
       },
@@ -139,7 +139,7 @@
       "deep-high": {
         "model": "nebius/zai-org/GLM-5.3"
       },
-      // Chain: claude-opus-5-5 -> glm-5.3 max -> kimi-k3 max; glm-5.3 is the first available rung.
+      // Chain: claude-opus-5-5 -> glm-5.3 max -> kimi-k3.1-pro max; glm-5.3 is the first available rung.
       "unspecified-high": {
         "model": "nebius/zai-org/GLM-5.3"
       },

@@ -13,8 +13,9 @@ AI-assisted software engineering. It includes:
 - **oh-my-openagent** — Enhanced agent framework with specialized agents
 - **agentmemory** — Persistent memory across sessions with semantic
   search and knowledge graph
-- **Nebius Token Factory** — Pre-configured with Kimi-K3, Kimi-K2.7-Code,
-  GLM-5.3, GLM-5.3-Flash, DeepSeek-V4.1-Flash-1017, DeepSeek-V4-Flash-0731,
+- **Nebius Token Factory** — Pre-configured with Kimi-K3.1-Pro,
+  Kimi-K3, Kimi-K2.7-Code, GLM-5.3, GLM-5.3-Flash,
+  DeepSeek-V4.1-Flash-1017, DeepSeek-V4-Flash-0731,
   DeepSeek-V4.1-Flash, MiniMax-M3, and Muse-Spark-Open models
 
 ## Purpose
@@ -51,7 +52,8 @@ minimizing risk of accidental damage to your system.
 
 ## Prerequisites
 
-- Docker
+- Docker — Docker Desktop on macOS, Docker Desktop with the WSL2
+  backend on Windows, or Docker Engine on Linux
 - Nebius Token Factory API Key
 
 ## Getting Started
@@ -78,16 +80,22 @@ actual directory you want to work on.
 
 ```bash
 cd /path/to/your/project
-docker compose -f /path/to/omo-nebius-token-factory/docker-compose.yml up -d --build
+/path/to/omo-nebius-token-factory/up.sh
 ```
+
+`up.sh` is a thin wrapper around
+`docker compose -f /path/to/omo-nebius-token-factory/docker-compose.yml up -d --build`
+that also exports your host uid/gid (`id -u`/`id -g`), which is what
+makes the shared tree writable inside the container on Linux and WSL2.
+To stop the container, run `down.sh` from the same repo.
 
 The current directory (`/path/to/your/project`) is mounted as
 `/home/omo/project` inside the container. This means:
 
 - You can keep the `omo-nebius-token-factory` repository anywhere on
   your machine.
-- Run the command above from whichever project folder you want the agent
-  to edit.
+- Run the script from whichever project folder you want the agent to
+  edit.
 
 This builds the `omo` image if it does not exist, persists agentmemory
 data in `$HOME/.omo-agentmemory/data`, and publishes agentmemory
@@ -149,21 +157,21 @@ credentials automatically.
 
 ### Configured Models
 
-- **Kimi-K3**: Main session model. Used by Sisyphus (and ultrawork),
+- **Kimi-K3.1-Pro**: Main session model. Used by Sisyphus (and ultrawork),
   Atlas, Sisyphus-Junior, Multimodal-Looker, Prometheus, and Metis, plus
   the `visual-engineering`, `artistry`, and `writing` categories for
   planning, architecture, and high-context reasoning tasks.
 - **GLM-5.3**: Used by Oracle, Momus, and the `ultrabrain`, `deep-low`,
   `deep-high`, and `unspecified-high` categories for complex reasoning,
   planning, and review tasks. Fastest strong reasoner on the platform
-  (455 tok/s). Also the fallback for every Kimi-K3 role except
+  (455 tok/s). Also the fallback for every Kimi-K3.1-Pro role except
   multimodal-looker (GLM models serve text-only on this platform, so
   they cannot take the vision lane).
 - **Muse-Spark-Open**: Primary model for multimodal-looker — the only
   roster model that takes video and audio, with the strongest visual
   reasoning on the platform. Pinned at low reasoning so its always-on
   thinking stays out of the way of simple image descriptions. Falls
-  back to Kimi-K3 when Muse is unavailable.
+  back to Kimi-K3.1-Pro when Muse is unavailable.
 - **Kimi-K2.7-Code**: Used by the `unspecified-low` category as the
   catch-all worker — a fast (231 tok/s) code-specialized executor.
 - **DeepSeek-V4.1-Flash-1017**: Used by Librarian, Explore, and the `quick`

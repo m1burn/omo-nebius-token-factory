@@ -1,5 +1,11 @@
 FROM node:24.16.0-bookworm-slim
-ARG TARGETARCH=arm64
+ARG TARGETARCH
+
+# Host user mapping: bind mounts keep their host uid/gid on Linux and
+# WSL2, so omo is created with the host user's ids to make the mounted
+# tree writable
+ARG HOST_UID
+ARG HOST_GID
 
 # Use bash with pipefail for every RUN so a failed stage mid-pipeline
 # aborts the build instead of being masked
@@ -19,7 +25,12 @@ RUN pip3 install --no-cache-dir --break-system-packages azure-cli==2.87.0 ruff y
 # Install PowerShell
 ENV POWERSHELL_TELEMETRY_OPTOUT=1
 RUN apt-get update && apt-get install -y --no-install-recommends tar ca-certificates libssl3 libicu72 && \
-    curl -fsSL "https://github.com/PowerShell/PowerShell/releases/download/v7.5.6/powershell-7.5.6-linux-${TARGETARCH}.tar.gz" -o /tmp/powershell.tar.gz && \
+    case "$TARGETARCH" in \
+      amd64) psarch=x64 ;; \
+      arm64) psarch=arm64 ;; \
+      *) echo "Unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+    esac && \
+    curl -fsSL "https://github.com/PowerShell/PowerShell/releases/download/v7.5.6/powershell-7.5.6-linux-${psarch}.tar.gz" -o /tmp/powershell.tar.gz && \
     mkdir -p /opt/microsoft/powershell/7 && \
     tar -xzf /tmp/powershell.tar.gz -C /opt/microsoft/powershell/7 && \
     chmod +x /opt/microsoft/powershell/7/pwsh && \
@@ -78,12 +89,12 @@ RUN set -eu; \
     github_install aquasecurity/trivy       'trivy_{VER}_Linux-{ARCH}.tar.gz'    trivy   ARM64 64bit
 
 # Create omo user before installing other packages
-RUN addgroup --gid 1001 omo && \
-    adduser --uid 1001 --gid 1001 --shell /bin/bash --disabled-password --gecos "" omo
+RUN getent group "${HOST_GID}" >/dev/null || addgroup --gid "${HOST_GID}" omo; \
+    adduser --uid "${HOST_UID}" --gid "${HOST_GID}" --shell /bin/bash --disabled-password --gecos "" omo
 
 # Pre-create and own the transformers model cache dir
 RUN mkdir -p /usr/local/lib/node_modules/@huggingface/transformers/.cache && \
-    chown omo:omo /usr/local/lib/node_modules/@huggingface/transformers/.cache
+    chown ${HOST_UID}:${HOST_GID} /usr/local/lib/node_modules/@huggingface/transformers/.cache
 
 # Install chromium with dependencies for Playwright
 WORKDIR /usr/local/lib/node_modules/@playwright/mcp
@@ -99,19 +110,19 @@ RUN git config --system --add safe.directory /data/snapshots && \
     git config --system --add safe.directory /home/omo/project
 
 # Switch to omo user for opencode config and runtime
-USER 1001
+USER ${HOST_UID}:${HOST_GID}
 WORKDIR /home/omo
 
 # Configure opencode
-COPY --chown=omo:omo opencode.json /home/omo/.config/opencode/opencode.json
-COPY --chown=omo:omo AGENTS.md /home/omo/.config/opencode/AGENTS.md
+COPY --chown=${HOST_UID}:${HOST_GID} opencode.json /home/omo/.config/opencode/opencode.json
+COPY --chown=${HOST_UID}:${HOST_GID} AGENTS.md /home/omo/.config/opencode/AGENTS.md
 
 RUN mkdir -p /home/omo/.omo
-COPY --chown=omo:omo omo.jsonc /home/omo/.omo/omo.jsonc
+COPY --chown=${HOST_UID}:${HOST_GID} omo.jsonc /home/omo/.omo/omo.jsonc
 
 # Configure agentmemory
 RUN mkdir -p /home/omo/.agentmemory
-COPY --chown=omo:omo agentmemory-housekeeper.sh /usr/local/bin/agentmemory_housekeeper
+COPY --chown=${HOST_UID}:${HOST_GID} agentmemory-housekeeper.sh /usr/local/bin/agentmemory_housekeeper
 RUN chmod +x /usr/local/bin/agentmemory_housekeeper
 
 # Pre-download the local embedding model into the transformers cache so
@@ -131,9 +142,9 @@ RUN bunx oh-my-openagent install --no-tui --platform=opencode --claude=no --open
     npx -y skills add rohitg00/agentmemory -a opencode -y -s '*' -g
 
 # Configure quality gate
-COPY --chown=omo:omo quality-gate/ /usr/local/bin/
+COPY --chown=${HOST_UID}:${HOST_GID} quality-gate/ /usr/local/bin/
 RUN chmod +x /usr/local/bin/quality-gate.py
-COPY --chown=omo:omo commands/quality-gate.md /home/omo/.config/opencode/commands/quality-gate.md
+COPY --chown=${HOST_UID}:${HOST_GID} commands/quality-gate.md /home/omo/.config/opencode/commands/quality-gate.md
 
 WORKDIR /home/omo/project
 
