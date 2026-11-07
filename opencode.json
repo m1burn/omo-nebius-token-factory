@@ -202,11 +202,6 @@
     "agentmemory": {
       "type": "local",
       "command": ["npx", "-y", "@agentmemory/mcp"]
-    },
-    "playwright": {
-      "type": "local",
-      "command": ["npx", "-y", "@playwright/mcp@latest"],
-      "args": ["--headless", "--browser", "chromium", "--no-sandbox"]
     }
   }
 }
