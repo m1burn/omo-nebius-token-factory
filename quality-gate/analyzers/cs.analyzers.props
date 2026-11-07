@@ -1,0 +1,6 @@
+<Project>
+  <ItemGroup>
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="*" PrivateAssets="all" />
+    <PackageReference Include="Roslynator.Analyzers" Version="*" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

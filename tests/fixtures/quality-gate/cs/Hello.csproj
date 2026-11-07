@@ -1,0 +1,13 @@
+<!-- VIOLATIONS PLANTED FOR QUALITY-SMOKE (do not fix):
+     - none in this file itself; it is the build vehicle for Program.cs analyzer hits
+     - deliberately minimal: net10.0 class library, zero PackageReference, no Directory.Build.props reliance
+ -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
