@@ -11,6 +11,9 @@ AGENTMEMORY_ENV="/home/omo/.agentmemory/.env"
 mkdir -p "$DATA_DIR" && cd "$DATA_DIR"
 agentmemory &
 
+# Start the memory housekeeper
+agentmemory_housekeeper &
+
 # Background auth watcher that intercepts the Nebius Token Factory auth token and applies it to agentmemory as well
 watcher() {
   AUTH_DIR="/home/omo/.local/share/opencode"

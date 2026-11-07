@@ -62,6 +62,8 @@ COPY --chown=omo:omo AGENTS.md /home/omo/.config/opencode/AGENTS.md
 RUN mkdir -p /home/omo/.agentmemory
 COPY --chown=omo:omo .env.agentmemory /home/omo/.agentmemory/.env
 COPY --chown=omo:omo oh-my-openagent.jsonc /home/omo/.config/opencode/oh-my-openagent.jsonc
+COPY --chown=omo:omo agentmemory-housekeeper.sh /usr/local/bin/agentmemory_housekeeper
+RUN chmod +x /usr/local/bin/agentmemory_housekeeper
 
 ENV AGENTMEMORY_III_CONFIG=/usr/local/lib/node_modules/@agentmemory/agentmemory/iii-config.docker.yaml
 ENV AGENTMEMORY_VIEWER_HOST=0.0.0.0
