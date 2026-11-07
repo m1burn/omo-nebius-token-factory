@@ -6,8 +6,8 @@
   "provider": {
     "nebius": {
       "models": {
-        "deepseek-ai/DeepSeek-V4-Flash": {
-          "name": "DeepSeek-V4-Flash",
+        "deepseek-ai/DeepSeek-V4-Flash-0731": {
+          "name": "DeepSeek-V4-Flash-0731",
           "family": "DeepSeek-V4",
           "release_date": "2026-07-31",
           "attachment": false,
@@ -94,46 +94,13 @@
             "field": "reasoning_content"
           },
           "provider": {
-            "api": "https://api.tokenfactory.eu-west2.nebius.com/v1/"
+            "api": "https://api.tokenfactory.nebius.com/v1/"
           }
         },
         "moonshotai/Kimi-K2.7-Code": {
           "name": "Kimi-K2.7-Code",
           "family": "kimi",
           "release_date": "2026-06-12",
-          "attachment": true,
-          "reasoning": true,
-          "tool_call": true,
-          "temperature": false,
-          "cost": {
-            "input": 0.95,
-            "output": 4
-          },
-          "limit": {
-            "context": 256000,
-            "input": 220000,
-            "output": 110000
-          },
-          "modalities": {
-            "input": [
-              "text",
-              "image"
-            ],
-            "output": [
-              "text"
-            ]
-          },
-          "interleaved": {
-            "field": "reasoning_content"
-          },
-          "provider": {
-            "api": "https://api.tokenfactory.us-central1.nebius.com/v1/"
-          }
-        },
-        "moonshotai/Kimi-K2.6": {
-          "name": "Kimi-K2.6",
-          "family": "kimi",
-          "release_date": "2026-04-20",
           "attachment": true,
           "reasoning": true,
           "tool_call": true,
@@ -194,6 +161,38 @@
           "provider": {
             "api": "https://api.tokenfactory.uk-south1.nebius.com/v1/"
           }
+        },
+        "zai-org/GLM-5.3-Flash": {
+          "name": "GLM-5.3-Flash",
+          "family": "glm",
+          "release_date": "2026-08-26",
+          "attachment": false,
+          "reasoning": true,
+          "tool_call": true,
+          "temperature": false,
+          "cost": {
+            "input": 0.15,
+            "output": 0.50
+          },
+          "limit": {
+            "context": 1000000,
+            "input": 960000,
+            "output": 110000
+          },
+          "modalities": {
+            "input": [
+              "text"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "interleaved": {
+            "field": "reasoning_content"
+          },
+          "provider": {
+            "api": "https://api.tokenfactory.nebius.com/v1/"
+          }
         }
       }
     }
@@ -201,7 +200,8 @@
   "mcp": {
     "agentmemory": {
       "type": "local",
-      "command": ["npx", "-y", "@agentmemory/mcp"]
+      "command": ["npx", "-y", "@agentmemory/mcp"],
+      "timeout": 300000
     }
   }
 }
