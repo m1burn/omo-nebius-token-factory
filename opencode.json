@@ -32,6 +32,32 @@
             "output": [
               "text"
             ]
+        },
+        "deepseek-ai/DeepSeek-V4.1-Flash-1017": {
+          "name": "DeepSeek-V4.1-Flash-1017",
+          "family": "DeepSeek-V4.1",
+          "release_date": "2026-10-17",
+          "attachment": false,
+          "reasoning": true,
+          "tool_call": true,
+          "temperature": false,
+          "cost": {
+            "input": 0.30,
+            "output": 1.20
+          },
+          "limit": {
+            "context": 1000000,
+            "input": 1000000,
+            "output": 393000
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
           }
         },
         "deepseek-ai/DeepSeek-V4-Flash-0731": {
@@ -191,6 +217,34 @@
             "context": 1000000,
             "input": 960000,
             "output": 110000
+          },
+          "modalities": {
+            "input": [
+              "text"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "interleaved": {
+            "field": "reasoning_content"
+        },
+        "meta-models/muse-spark-open": {
+          "name": "Muse Spark Open",
+          "family": "muse",
+          "release_date": "2026-10-15",
+          "attachment": true,
+          "reasoning": true,
+          "tool_call": true,
+          "temperature": true,
+          "cost": {
+            "input": 1.25,
+            "output": 4.25
+          },
+          "limit": {
+            "context": 1048576,
+            "input": 1048576,
+            "output": 32000
           },
           "modalities": {
             "input": [

@@ -58,22 +58,27 @@
 #         re-import step is required (recovery needs none, unlike [A]).
 #
 # Design note: snapshot-before-prune guarantees evicted/reset data stays
-# restorable from git history under $SNAPSHOT_DIR.
+# restorable from git history under $SNAPSHOT_DIR. Validation happens
+# dry-run-first and the snapshot is skipped when nothing would change, so
+# no-op passes do not bloat the snapshot history.
 set -u
 
 STATE_DIR=/data/state_store.db
 ARCHIVE_DIR=/data/archive
 
 SEM_SOFT_BYTES=$((4  * 1024 * 1024))   # mem:semantic -> retention-evict
+SEM_WARN_BYTES=$((12 * 1024 * 1024))   # mem:semantic approaching bridge-fatal zone ([A]; iii JSON envelope = 16MiB, retention-score result already dies over it)
 GRAPH_SOFT_BYTES=$((15 * 1024 * 1024)) # graph:nodes -> mem::graph-reset
 GRAPH_HARD_BYTES=$((30 * 1024 * 1024)) # all graph *.bin -> physical wipe
 INSIGHTS_HARD_BYTES=$((16 * 1024 * 1024)) # mem:insights -> physical archive (see [E]; <18.7MiB empirically-fatal on this stack, see lsn_8c7424da07feeb0b)
-EVICT_THRESHOLD=0.55                   # retention-score cutoff; lower = keep more
-EVICT_MAX=1000                         # max evictions per prune pass
+EVICT_THRESHOLD=0.60                   # retention-score cutoff; lower = keep more. 0.55 never fired: live store's score floor measured 0.5501 (2026-10), so every prune pass evicted 0
+EVICT_MAX=1000                         # max evictions per retention-evict call (server-side cap, retention.ts)
+EVICT_LOOPS=5                          # bounded evict calls per pass; loop stops early when a call evicts 0
 PRUNE_INTERVAL=86400                   # daily pruning cadence
 
 log()  { echo "[agentmemory_housekeeper] $(date -Is) $*"; }
-tri()  { iii trigger "$1" --json "$2" 2>&1 | head -c 300; }
+tri_json() { iii trigger -n "${III_NAMESPACE:-agentmemory-3111}" --timeout-ms "${III_TIMEOUT_MS:-180000}" "$1" --json "$2" 2>&1; } # full result, for parsing (bulky)
+tri()  { tri_json "$1" "$2" | head -c 300; } # log-truncated; do NOT parse from this (fields past 300 chars are cut)
 size() {
   local total=0 f
   for f in "$@"; do
@@ -91,14 +96,52 @@ wait_healthy() {
   log "agentmemory not healthy after 5min; skipping pass"; return 1
 }
 
+# Propagates the iii trigger exit code (function errors exit non-zero, e.g.
+# invocation_stopped / function_not_found) so callers can gate destructive
+# steps on a restorable snapshot actually existing.
 snapshot() {
-  log "snapshot-create ($1)"; tri mem::snapshot-create "{\"message\":\"agentmemory_housekeeper: $1\"}"
+  local out rc=0
+  log "snapshot-create ($1)"
+  out=$(tri_json mem::snapshot-create "{\"message\":\"agentmemory_housekeeper: $1\"}") || rc=$?
+  printf '%s' "$out" | head -c 300; echo
+  return "$rc"
 }
 
+# retention-score refreshes the persisted scores retention-evict consumes.
+# Past ~16MiB of scored entries its RESULT envelope exceeds the iii bridge
+# budget ([A]) and the trigger replies payload_too_large; the scores still
+# land server-side, so that reply is expected and non-fatal.
 prune_semantic() {
-  tri mem::retention-score '{}'
-  tri mem::retention-evict "{\"threshold\":$EVICT_THRESHOLD,\"maxEvict\":$EVICT_MAX,\"dryRun\":true}"
-  tri mem::retention-evict "{\"threshold\":$EVICT_THRESHOLD,\"maxEvict\":$EVICT_MAX}"
+  local out n i
+  out=$(tri mem::retention-score '{}')
+  case "$out" in
+    *payload_too_large*) log "retention-score result exceeds bridge envelope; scores refreshed server-side (expected past ~16MiB, see [A])" ;;
+    *) printf '%s\n' "$out" ;;
+  esac
+
+  # Gate on the dry-run so snapshot+evict (and the daily ~100MB git commit)
+  # only happen when there is data that will actually change.
+  out=$(tri_json mem::retention-evict "{\"threshold\":$EVICT_THRESHOLD,\"maxEvict\":$EVICT_MAX,\"dryRun\":true}")
+  n=$(printf '%s' "$out" | sed -n 's/.*"wouldEvict": *\([0-9][0-9]*\).*/\1/p')
+  case "$n" in
+    *[!0-9]*|'') log "dry-run result unreadable ($(printf '%s' "$out" | head -c 200)); skipping evict this pass"; return ;;
+    0) log "nothing evictable below $EVICT_THRESHOLD; skipping snapshot + evict"; return ;;
+  esac
+  log "dry-run wouldEvict=$n (threshold $EVICT_THRESHOLD)"
+
+  if ! snapshot "pre-semantic-prune"; then
+    log "snapshot failed; skipping evict this pass"
+    return
+  fi
+  for i in $(seq 1 "$EVICT_LOOPS"); do
+    out=$(tri_json mem::retention-evict "{\"threshold\":$EVICT_THRESHOLD,\"maxEvict\":$EVICT_MAX}")
+    n=$(printf '%s' "$out" | sed -n 's/.*"evicted": *\([0-9][0-9]*\).*/\1/p')
+    case "$n" in
+      *[!0-9]*|'') log "evict result unreadable ($(printf '%s' "$out" | head -c 200)); stopping loop"; return ;;
+    esac
+    log "evict pass $i/$EVICT_LOOPS: evicted=$n"
+    [ "$n" -eq 0 ] && break
+  done
 }
 
 # setsid so the restarted agentmemory survives teardown of whatever shell
@@ -136,20 +179,23 @@ prune() {
 
   if [ "$sem_size" -gt "$SEM_SOFT_BYTES" ]; then
     log "mem:semantic ${sem_size}B > soft cap; retention prune"
-    snapshot "pre-semantic-prune"; prune_semantic
+    if [ "$sem_size" -gt "$SEM_WARN_BYTES" ]; then
+      log "WARNING: mem:semantic ${sem_size}B > ${SEM_WARN_BYTES}B; full-scope enumerations (semantic-list/reflect/export, see [A]) already fail at this size; retention pruning alone will not clear the bridge-fatal zone"
+    fi
+    prune_semantic
   fi
 
   if [ "$insights_size" -gt "$INSIGHTS_HARD_BYTES" ]; then
     log "mem:insights ${insights_size}B > hard cap; physical archive (derived scope; reflect rebuilds)"
-    snapshot "pre-insights-wipe"; wipe_insights
+    if snapshot "pre-insights-wipe"; then wipe_insights; else log "snapshot failed; insights wipe aborted"; fi
   fi
 
   if [ "$graph_size" -gt "$GRAPH_HARD_BYTES" ]; then
     log "graph scopes ${graph_size}B > hard cap; physical wipe"
-    snapshot "pre-graph-wipe"; wipe_graph
+    if snapshot "pre-graph-wipe"; then wipe_graph; else log "snapshot failed; graph wipe aborted"; fi
   elif [ "$graph_nodes_size" -gt "$GRAPH_SOFT_BYTES" ]; then
     log "graph:nodes ${graph_nodes_size}B > soft cap; logical reset (extraction rebuilds)"
-    snapshot "pre-graph-reset"; tri mem::graph-reset '{}'
+    if snapshot "pre-graph-reset"; then tri mem::graph-reset '{}'; else log "snapshot failed; graph reset aborted"; fi
   fi
 
   local s f

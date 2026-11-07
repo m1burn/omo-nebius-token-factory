@@ -14,11 +14,10 @@ services:
       - ${PWD}:/home/omo/project
       - ${HOME}/.omo-agentmemory/data:/data
     ports:
-      # The agentmemory is bound to 0.0.0.0 inside the container,
-      # but we only publish it on the host loopback so it is not reachable
-      # from other machines.
-      - "127.0.0.1:3111:3111"
-      - "127.0.0.1:3112:3112"
+      # Only the agentmemory viewer is published, on the host loopback. It is
+      # a bearer-authorized proxy for the full REST API (host tools use
+      # http://127.0.0.1:3113 with AGENTMEMORY_SECRET); the REST worker
+      # itself stays bound to the container's loopback (agentmemory default).
       - "127.0.0.1:3113:3113"
     working_dir: /home/omo/project
     restart: unless-stopped

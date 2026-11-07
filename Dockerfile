@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends tar ca-certific
 RUN pwsh -NoProfile -Command "Set-PSRepository -Name PSGallery -InstallationPolicy Trusted; Install-Module PSScriptAnalyzer -Scope AllUsers -Force; Install-Module Pester -Scope AllUsers -Force"
 
 # Install npm packages
-RUN npm install -g bun opencode-ai @colbymchenry/codegraph @agentmemory/agentmemory playwright-core @playwright/mcp @warp-dot-dev/opencode-warp eslint typescript-eslint eslint-plugin-sonarjs jscpd knip markdownlint-cli2 && \
+RUN npm install -g bun opencode-ai @colbymchenry/codegraph @agentmemory/agentmemory @huggingface/transformers playwright-core @playwright/mcp @warp-dot-dev/opencode-warp eslint typescript-eslint eslint-plugin-sonarjs jscpd knip markdownlint-cli2 && \
     npm cache clean --force
 
 ENV WARP_CLI_AGENT_PROTOCOL_VERSION=1
@@ -51,7 +51,7 @@ RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh &&
 
 # Install iii for agentmemory.
 RUN case "$TARGETARCH" in arm64) III_ARCH=iii-aarch64-unknown-linux-gnu;; amd64) III_ARCH=iii-x86_64-unknown-linux-gnu;; *) echo "Unsupported: $TARGETARCH" >&2 && exit 1;; esac && \
-    curl -fsSL "https://github.com/iii-hq/iii/releases/download/iii/v0.22.1/${III_ARCH}.tar.gz" | tar -xz -C /usr/local/bin/
+    curl -fsSL "https://github.com/iii-hq/iii/releases/download/iii/v0.25.0/${III_ARCH}.tar.gz" | tar -xz -C /usr/local/bin/
 
 # Install tools from GitHub releases
 # github_install <repo> <asset-pattern> <binary> <arm64-token> <amd64-token>
@@ -81,13 +81,9 @@ RUN set -eu; \
 RUN addgroup --gid 1001 omo && \
     adduser --uid 1001 --gid 1001 --shell /bin/bash --disabled-password --gecos "" omo
 
-# Pre-create and own the Xenova transformers fallback cache dir (global pkg is root-owned)
-RUN mkdir -p /usr/local/lib/node_modules/@agentmemory/agentmemory/node_modules/@xenova/transformers/.cache && \
-    chown -R omo:omo /usr/local/lib/node_modules/@agentmemory/agentmemory/node_modules/@xenova/transformers/.cache
-
-# Pre-create and own the Hugging Face transformers cache dir used by agentmemory v0.9.29+
-RUN mkdir -p /usr/local/lib/node_modules/@agentmemory/agentmemory/node_modules/@huggingface/transformers/.cache && \
-    chown -R omo:omo /usr/local/lib/node_modules/@agentmemory/agentmemory/node_modules/@huggingface/transformers/.cache
+# Pre-create and own the transformers model cache dir
+RUN mkdir -p /usr/local/lib/node_modules/@huggingface/transformers/.cache && \
+    chown omo:omo /usr/local/lib/node_modules/@huggingface/transformers/.cache
 
 # Install chromium with dependencies for Playwright
 WORKDIR /usr/local/lib/node_modules/@playwright/mcp
@@ -114,10 +110,15 @@ RUN mkdir -p /home/omo/.omo
 COPY --chown=omo:omo omo.jsonc /home/omo/.omo/omo.jsonc
 
 # Configure agentmemory
-RUN mkdir -p /home/omo/.agentmemory && \
-    cp /usr/local/lib/node_modules/@agentmemory/agentmemory/iii-config.docker.yaml /home/omo/.agentmemory/iii-config.docker.yaml
+RUN mkdir -p /home/omo/.agentmemory
 COPY --chown=omo:omo agentmemory-housekeeper.sh /usr/local/bin/agentmemory_housekeeper
 RUN chmod +x /usr/local/bin/agentmemory_housekeeper
+
+# Pre-download the local embedding model into the transformers cache so
+# EMBEDDING_PROVIDER=local serves semantic recall on first boot instead of
+# fetching ~23MB from HuggingFace at first use
+RUN node --input-type=module -e \
+    'const t = await import("/usr/local/lib/node_modules/@huggingface/transformers/dist/transformers.node.mjs"); await t.pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", { dtype: "q8" });'
 
 # Copy agentmemory opencode plugin and commands
 RUN mkdir -p /home/omo/.config/opencode/plugins /home/omo/.config/opencode/commands && \

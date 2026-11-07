@@ -14,8 +14,8 @@ AI-assisted software engineering. It includes:
 - **agentmemory** — Persistent memory across sessions with semantic
   search and knowledge graph
 - **Nebius Token Factory** — Pre-configured with Kimi-K3, Kimi-K2.7-Code,
-  GLM-5.3, GLM-5.3-Flash, DeepSeek-V4-Flash-0731, DeepSeek-V4.1-Flash,
-  and MiniMax-M3 models
+  GLM-5.3, GLM-5.3-Flash, DeepSeek-V4.1-Flash-1017, DeepSeek-V4-Flash-0731,
+  DeepSeek-V4.1-Flash, MiniMax-M3, and Muse-Spark-Open models
 
 ## Purpose
 
@@ -78,7 +78,7 @@ actual directory you want to work on.
 
 ```bash
 cd /path/to/your/project
-docker compose -f /path/to/omo-nebius-token-factory/docker-compose.yml up -d
+docker compose -f /path/to/omo-nebius-token-factory/docker-compose.yml up -d --build
 ```
 
 The current directory (`/path/to/your/project`) is mounted as
@@ -156,11 +156,19 @@ credentials automatically.
 - **GLM-5.3**: Used by Oracle, Momus, and the `ultrabrain`, `deep-low`,
   `deep-high`, and `unspecified-high` categories for complex reasoning,
   planning, and review tasks. Fastest strong reasoner on the platform
-  (455 tok/s).
+  (455 tok/s). Also the fallback for every Kimi-K3 role except
+  multimodal-looker (GLM models serve text-only on this platform, so
+  they cannot take the vision lane).
+- **Muse-Spark-Open**: Primary model for multimodal-looker — the only
+  roster model that takes video and audio, with the strongest visual
+  reasoning on the platform. Pinned at low reasoning so its always-on
+  thinking stays out of the way of simple image descriptions. Falls
+  back to Kimi-K3 when Muse is unavailable.
 - **Kimi-K2.7-Code**: Used by the `unspecified-low` category as the
   catch-all worker — a fast (231 tok/s) code-specialized executor.
-- **DeepSeek-V4-Flash-0731**: Used by Librarian, Explore, and the `quick`
-  category for high-throughput search and simple tasks (351 tok/s).
+- **DeepSeek-V4.1-Flash-1017**: Used by Librarian, Explore, and the `quick`
+  category for high-throughput search and simple tasks, with
+  **GLM-5.3-Flash** as the cheap fallback rung.
 - **MiniMax-M3**: Default model for agentmemory operations.
 
 ## Quality gates

@@ -11,7 +11,8 @@ MODULE_PROBE = (
     "if (Get-Module -ListAvailable PSScriptAnalyzer) { exit 0 } else { exit 1 }"
 )
 ANALYZE = (
-    "Invoke-ScriptAnalyzer -Path {paths} -Severity Error,Warning "
+    "{paths} "
+    "| ForEach-Object {{ Invoke-ScriptAnalyzer -Path $_ -Severity Error,Warning }} "
     '| ForEach-Object {{ "$($_.ScriptName):$($_.Line): '
     '$($_.Severity) $($_.RuleName) $($_.Message)" }}'
 )
