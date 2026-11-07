@@ -48,9 +48,10 @@ RUN mkdir -p /usr/local/lib/node_modules/@agentmemory/agentmemory/node_modules/@
     chown -R omo:omo /usr/local/lib/node_modules/@agentmemory/agentmemory/node_modules/@huggingface/transformers/.cache
 
 # Install chromium with dependencies for Playwright
-RUN npx -y playwright-core install-deps chromium && \
-    npx -y playwright-core install chromium && \
-    CHROME_PATH=$(find /ms-playwright -maxdepth 3 -path '*/chrome-linux/chrome' -print -quit) && \
+RUN cd /usr/local/lib/node_modules/@playwright/mcp && \
+    npx --no-install playwright-core install-deps chromium && \
+    npx --no-install playwright-core install chromium && \
+    CHROME_PATH=$(find /ms-playwright -maxdepth 3 -path '*/chrome-linux*/chrome' -print -quit) && \
     [ -f "$CHROME_PATH" ] || { echo "Chromium not found"; exit 1; } && \
     mkdir -p /opt/google/chrome && ln -sf "$CHROME_PATH" /opt/google/chrome/chrome
 
@@ -66,10 +67,12 @@ WORKDIR /home/omo
 COPY --chown=omo:omo opencode.json /home/omo/.config/opencode/opencode.json
 COPY --chown=omo:omo AGENTS.md /home/omo/.config/opencode/AGENTS.md
 
+RUN mkdir -p /home/omo/.omo
+COPY --chown=omo:omo omo.jsonc /home/omo/.omo/omo.jsonc
+
 # Configure agentmemory
 RUN mkdir -p /home/omo/.agentmemory
 COPY --chown=omo:omo .env.agentmemory /home/omo/.agentmemory/.env
-COPY --chown=omo:omo oh-my-openagent.jsonc /home/omo/.config/opencode/oh-my-openagent.jsonc
 COPY --chown=omo:omo agentmemory-housekeeper.sh /usr/local/bin/agentmemory_housekeeper
 RUN chmod +x /usr/local/bin/agentmemory_housekeeper
 

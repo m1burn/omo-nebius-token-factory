@@ -1,0 +1,103 @@
+{
+  "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/omo.schema.json",
+  "[opencode]": {
+    "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/omo.schema.json",
+    "agents": {
+      // hephaestus: requires an openai-family provider; kept as-is from the
+      // prior migration output. Unreachable spawn paths fall back gracefully.
+      "hephaestus": {
+        "model": "opencode/gpt-5-nano"
+      },
+      // Main orchestrator: pinned to the session model from opencode.json.
+      // Builtin chain is claude-opus-5 (unavailable here) -> kimi-k3 -> gpt-5.6-sol -> glm-5.2,
+      // but the premium model stays out of the always-on main-agent slot by design
+      // (see docs/guide/agent-model-matching.md "Where to spend one scarce premium model").
+      "sisyphus": {
+        "model": "nebius/moonshotai/Kimi-K2.7-Code",
+        "ultrawork": {
+          "model": "nebius/moonshotai/Kimi-K2.7-Code"
+        }
+      },
+      // High-IQ read-only consultant. Chain: gpt-5.6-sol xhigh -> gemini -> claude-opus-5 -> glm-5.2;
+      // GLM is the in-chain rung. Full GLM-5.3, not Flash: consultation needs sustained reasoning.
+      "oracle": {
+        "model": "nebius/zai-org/GLM-5.3"
+      },
+      // Cheap/fast search lanes. Chains: gpt-5.6-luna-fast -> deepseek-v4-flash -> ... -> minimax-m3;
+      // DeepSeek rung comes first among available models. "Search needs speed, not intelligence."
+      "librarian": {
+        "model": "nebius/deepseek-ai/DeepSeek-V4.1-Flash"
+      },
+      "explore": {
+        "model": "nebius/deepseek-ai/DeepSeek-V4.1-Flash"
+      },
+      // Image/PDF summarizer. Runtime vision gate (modalities.input includes "image") passes this
+      // model, and 1M context helps long PDFs. Low-effort role: keep it off the premium Kimi-K3 rung.
+      "multimodal-looker": {
+        "model": "nebius/deepseek-ai/DeepSeek-V4.1-Flash"
+      },
+      // Planner and pre-planning consultant. Chains: claude-fable-5-1 (unavailable) -> kimi-k3 max.
+      "prometheus": {
+        "model": "nebius/moonshotai/Kimi-K3"
+      },
+      "metis": {
+        "model": "nebius/moonshotai/Kimi-K3"
+      },
+      // Plan reviewer needs sustained reasoning (Flash/small models drift and rubber-stamp).
+      // Chain: gpt-6-astra xhigh -> ... -> glm-5.2; GLM-5.3 is the full-model analog.
+      "momus": {
+        "model": "nebius/zai-org/GLM-5.3"
+      },
+      // Executor workers. Chain: claude-sonnet-5 (unavailable) -> kimi-k3 -> gpt-5.6-sol medium -> minimax-m3;
+      // mid-tier code model fits the sonnet-5 slot without premium cost.
+      "atlas": {
+        "model": "nebius/moonshotai/Kimi-K2.7-Code"
+      },
+      "sisyphus-junior": {
+        "model": "nebius/moonshotai/Kimi-K2.7-Code"
+      }
+    },
+    "categories": {
+      // UI/creative/prose: kimi-k3 is the first available rung of these builtin chains.
+      "visual-engineering": {
+        "model": "nebius/moonshotai/Kimi-K3"
+      },
+      "artistry": {
+        "model": "nebius/moonshotai/Kimi-K3"
+      },
+      "writing": {
+        "model": "nebius/moonshotai/Kimi-K3"
+      },
+      // GPT-shaped autonomous lanes (no GPT in catalog). The sibling unspecified-high chain
+      // ranks glm-5.3 ahead of kimi-k3 for this shape; Flash variant is too small for sustained reasoning.
+      "ultrabrain": {
+        "model": "nebius/zai-org/GLM-5.3"
+      },
+      "deep": {
+        "model": "nebius/zai-org/GLM-5.3"
+      },
+      "unspecified-high": {
+        "model": "nebius/zai-org/GLM-5.3"
+      },
+      // Trivial tasks: deepseek-v4-flash rung of the quick chain (cheapest fast worker available).
+      "quick": {
+        "model": "nebius/deepseek-ai/DeepSeek-V4.1-Flash"
+      },
+      // Catch-all low-effort worker: sonnet-5/terra analog (mid-tier coder), not the premium rung.
+      "unspecified-low": {
+        "model": "nebius/moonshotai/Kimi-K2.7-Code"
+      }
+    },
+    // User-layer-only key: walked project layers cannot set playwright_mcp_args.
+    "browser_automation_engine": {
+      // Container has no display server: force headless Chromium with sandbox disabled.
+      // Chromium is provided by the Dockerfile (PLAYWRIGHT_BROWSERS_PATH=/ms-playwright).
+      "playwright_mcp_args": [
+        "--headless",
+        "--browser",
+        "chromium",
+        "--no-sandbox"
+      ]
+    }
+  }
+}
