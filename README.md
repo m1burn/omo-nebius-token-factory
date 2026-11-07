@@ -100,7 +100,7 @@ NEBIUS_API_KEY=your-nebius-token-factory-key
 | agentmemory | latest |
 | codegraph | latest |
 | Playwright + Chromium | latest |
-| iii | 0.11.2 |
+| iii | 0.22.1 |
 
 ### Configured Models
 
