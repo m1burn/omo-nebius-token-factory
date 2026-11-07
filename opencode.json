@@ -13,7 +13,7 @@
           "attachment": false,
           "reasoning": true,
           "tool_call": true,
-          "temperature": true,
+          "temperature": false,
           "cost": {
             "input": 0.30,
             "output": 1.20
@@ -35,6 +35,39 @@
             "api": "https://api.tokenfactory.us-central1.nebius.com/v1/"
           }
         },
+        "moonshotai/Kimi-K3": {
+          "name": "Kimi-K3",
+          "family": "kimi",
+          "release_date": "2026-07-27",
+          "attachment": true,
+          "reasoning": true,
+          "tool_call": true,
+          "temperature": false,
+          "cost": {
+            "input": 3,
+            "output": 15
+          },
+          "limit": {
+            "context": 900000,
+            "input": 900000,
+            "output": 900000
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "interleaved": {
+            "field": "reasoning_content"
+          },
+          "provider": {
+            "api": "https://api.tokenfactory.eu-west2.nebius.com/v1/"
+          }
+        },
         "moonshotai/Kimi-K2.7-Code": {
           "name": "Kimi-K2.7-Code",
           "family": "kimi",
@@ -42,7 +75,7 @@
           "attachment": true,
           "reasoning": true,
           "tool_call": true,
-          "temperature": true,
+          "temperature": false,
           "cost": {
             "input": 0.95,
             "output": 4
@@ -75,7 +108,7 @@
           "attachment": true,
           "reasoning": true,
           "tool_call": true,
-          "temperature": true,
+          "temperature": false,
           "cost": {
             "input": 0.95,
             "output": 4
@@ -108,7 +141,7 @@
           "attachment": false,
           "reasoning": true,
           "tool_call": true,
-          "temperature": true,
+          "temperature": false,
           "cost": {
             "input": 1.40,
             "output": 4.40
