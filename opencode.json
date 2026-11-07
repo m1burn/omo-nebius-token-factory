@@ -1,15 +1,15 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "lsp": true,
-  "model": "nebius/moonshotai/Kimi-K2.6",
+  "model": "nebius/moonshotai/Kimi-K2.7-Code",
   "plugin": ["./plugins/agentmemory-capture.ts"],
   "provider": {
     "nebius": {
       "models": {
-        "moonshotai/Kimi-K2.6": {
-          "name": "Kimi-K2.6",
+        "moonshotai/Kimi-K2.7-Code": {
+          "name": "Kimi-K2.7-Code",
           "family": "kimi",
-          "release_date": "2026-05-20",
+          "release_date": "2026-06-15",
           "attachment": true,
           "reasoning": true,
           "tool_call": true,
