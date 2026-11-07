@@ -1,17 +1,24 @@
 {
   "agents": {
-    "sisyphus": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
-    "atlas": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
+    "sisyphus": { "model": "nebius/moonshotai/Kimi-K2.7-Code", "ultrawork": { "model": "nebius/moonshotai/Kimi-K2.7-Code" } },
     "oracle": { "model": "nebius/zai-org/GLM-5.2" },
-    "explore": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
-    "librarian": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
+    "librarian": { "model": "nebius/MiniMaxAI/MiniMax-M3" },
+    "explore": { "model": "nebius/MiniMaxAI/MiniMax-M3" },
+    "multimodal-looker": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
+    "prometheus": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
+    "metis": { "model": "nebius/zai-org/GLM-5.2" },
+    "momus": { "model": "nebius/zai-org/GLM-5.2" },
+    "atlas": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
+    "sisyphus-junior": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
   },
   "categories": {
-    "visual-engineering": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
-    "deep": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
-    "unspecified-high": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
+    "visual-engineering": { "model": "nebius/zai-org/GLM-5.2" },
+    "ultrabrain": { "model": "nebius/zai-org/GLM-5.2" },
+    "deep": { "model": "nebius/zai-org/GLM-5.2" },
+    "artistry": { "model": "nebius/zai-org/GLM-5.2" },
+    "quick": { "model": "nebius/MiniMaxAI/MiniMax-M3" },
     "unspecified-low": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
-    "quick": { "model": "nebius/MiniMaxAI/MiniMax-M2.5" },
-    "writing": { "model": "nebius/moonshotai/Kimi-K2.7-Code" },
+    "unspecified-high": { "model": "nebius/zai-org/GLM-5.2" },
+    "writing": { "model": "nebius/MiniMaxAI/MiniMax-M3" },
   }
 }

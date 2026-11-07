@@ -1,20 +1,3 @@
-# oh-my-openagent Nebius Token Factory Edition Docker image
-#
-# USAGE:
-#   Build:
-#     docker build -t omo .
-#
-#   Run (with the project folder shared):
-#     docker run --name omo -d -v "$PWD:/home/omo/project" -v "$HOME/.omo-agentmemory:/home/omo/.omo-agentmemory" --restart unless-stopped omo
-#
-#   Start a new session with opencode:
-#     docker exec -it -w /home/omo/project omo opencode
-#
-#   This image includes both opencode, oh-my-openagent, agent memory and configuration for Nebius Token Factory pre-installed.
-#
-#   Tool versions: Terraform 1.13.1, Azure CLI 2.87.0, PowerShell 7.5.6
-#
-
 FROM node:24.16.0-bookworm-slim
 ARG TARGETARCH=arm64
 
@@ -38,8 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget tar ca-cer
     rm -rf /tmp/powershell* /var/lib/apt/lists/*
 
 # Install npm packages
-RUN npm install -g bun opencode-ai @colbymchenry/codegraph @agentmemory/agentmemory playwright-core @playwright/mcp
+RUN npm install -g bun opencode-ai @colbymchenry/codegraph @agentmemory/agentmemory playwright-core @playwright/mcp @warp-dot-dev/opencode-warp
 
+ENV WARP_CLI_AGENT_PROTOCOL_VERSION=1
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # Install Terraform
@@ -70,9 +54,19 @@ RUN npx -y playwright-core install-deps chromium && \
 USER omo
 WORKDIR /home/omo
 
+# Configure opencode
+COPY --chown=omo:omo opencode.json /home/omo/.config/opencode/opencode.json
+COPY --chown=omo:omo AGENTS.md /home/omo/.config/opencode/AGENTS.md
+
 # Configure agentmemory
 RUN mkdir -p /home/omo/.agentmemory
 COPY --chown=omo:omo .env.agentmemory /home/omo/.agentmemory/.env
+COPY --chown=omo:omo oh-my-openagent.jsonc /home/omo/.config/opencode/oh-my-openagent.jsonc
+
+ENV AGENTMEMORY_III_CONFIG=/usr/local/lib/node_modules/@agentmemory/agentmemory/iii-config.docker.yaml
+ENV AGENTMEMORY_VIEWER_HOST=0.0.0.0
+ENV AGENTMEMORY_SECRET=omo
+ENV VIEWER_ALLOWED_HOSTS=localhost:3113,127.0.0.1:3113,[::1]:3113
 
 # Copy agentmemory opencode plugin and commands
 RUN mkdir -p /home/omo/.config/opencode/plugins /home/omo/.config/opencode/commands && \
@@ -80,20 +74,11 @@ RUN mkdir -p /home/omo/.config/opencode/plugins /home/omo/.config/opencode/comma
     cp /usr/local/lib/node_modules/@agentmemory/agentmemory/plugin/opencode/commands/recall.md /home/omo/.config/opencode/commands/ && \
     cp /usr/local/lib/node_modules/@agentmemory/agentmemory/plugin/opencode/commands/remember.md /home/omo/.config/opencode/commands/
 
-# Configure global agent instructions (via AGENTS.md)
-COPY --chown=omo:omo AGENTS.md /home/omo/.config/opencode/AGENTS.md
-
-# Configure opencode
-COPY --chown=omo:omo opencode.json /home/omo/.config/opencode/opencode.json
-
 # Register oh-my-openagent plugin with OpenCode (non-interactive)
-RUN bunx oh-my-openagent install --no-tui --platform=opencode \
-  --claude=no --openai=no --gemini=no --copilot=no --skip-auth
+RUN bunx oh-my-openagent install --no-tui --platform=opencode --claude=no --openai=no --gemini=no --copilot=no --skip-auth
 
+# Install agentmemory skills
 RUN npx -y skills add rohitg00/agentmemory -a opencode -y -s '*' -g
-
-# Configure oh-my-openagent with specified models
-COPY --chown=omo:omo oh-my-openagent.jsonc /home/omo/.config/opencode/oh-my-openagent.jsonc
 
 WORKDIR /home/omo/project
 
