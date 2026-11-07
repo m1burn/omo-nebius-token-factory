@@ -73,7 +73,7 @@ EVICT_MAX=1000                         # max evictions per prune pass
 PRUNE_INTERVAL=86400                   # daily pruning cadence
 
 log()  { echo "[agentmemory_housekeeper] $(date -Is) $*"; }
-tri()  { iii trigger --function-id "$1" --payload "$2" 2>&1 | head -c 300; }
+tri()  { iii trigger "$1" --json "$2" 2>&1 | head -c 300; }
 size() {
   local total=0 f
   for f in "$@"; do
