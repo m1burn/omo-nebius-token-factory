@@ -130,7 +130,7 @@
             "field": "reasoning_content"
           },
           "provider": {
-            "api": "https://api.tokenfactory.us-central1.nebius.com/v1/"
+            "api": "https://api.tokenfactory.uk-south1.nebius.com/v1/"
           }
         }
       }
