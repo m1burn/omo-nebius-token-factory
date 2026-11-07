@@ -57,6 +57,24 @@
 #         are derived state; future mem::reflect runs rebuild them, so no
 #         re-import step is required (recovery needs none, unlike [A]).
 #
+#  [F] Orphaned search-index generations are never GC'd upstream.
+#      IndexPersistence re-serializes the WHOLE BM25/vector index into a NEW
+#      generation of ~2MB shards on every debounced save, then best-effort
+#      deletes the previous generation (src/state/index-persistence.ts,
+#      saveShardedIndex -> previous_generation_cleanup). Failed deletes are
+#      only audited, never retried; load() reads only the manifest's
+#      generation, so orphans are pure dead weight: the engine's file_based
+#      KV loads every shard file into RAM (RSS + boot time), and each save
+#      rewrites the full ~370MB live generation through the bridge. Observed
+#      2026-09-22: 6 dead BM25 + 3 dead vector generations (~805MB), live
+#      serialized index 367MB for 177MB of observations
+#      (SearchIndex.serialize JSON-stringifies the corpus,
+#      src/state/search-index.ts:194), engine RSS 5.7GB pinned at 100% CPU,
+#      worker heap 91-95%+ -> Health: critical.
+#      => gc_index_orphans below: keep only the manifest generations,
+#         archive the rest. Requires grep -P. Restart needed for the engine
+#         to release the deleted state, so it stops/starts like the wipes.
+#
 # Design note: snapshot-before-prune guarantees evicted/reset data stays
 # restorable from git history under $SNAPSHOT_DIR.
 set -u
@@ -71,6 +89,7 @@ INSIGHTS_HARD_BYTES=$((16 * 1024 * 1024)) # mem:insights -> physical archive (se
 EVICT_THRESHOLD=0.55                   # retention-score cutoff; lower = keep more
 EVICT_MAX=1000                         # max evictions per prune pass
 PRUNE_INTERVAL=86400                   # daily pruning cadence
+INDEX_GC_MIN_BYTES=$((50 * 1024 * 1024)) # min orphan bytes before a stop/restart GC is worth it
 
 log()  { echo "[agentmemory_housekeeper] $(date -Is) $*"; }
 tri()  { iii trigger --function-id "$1" --payload "$2" 2>&1 | head -c 300; }
@@ -124,6 +143,51 @@ wipe_insights() {
   start_agentmemory
 }
 
+manifest_gen() { # $1 = manifest entry prefix: "data" (bm25) or "vectors"
+  grep -aoP "\"$1:manifest\":\{\"chars\":[0-9]+,\"generation\":\"\K[^\"]+" \
+    "$STATE_DIR/mem%3Aindex%3Abm25.bin" 2>/dev/null | head -1
+}
+
+# [F] keep only the manifest's live index generations; archive orphan shards
+# and stale .tmp partial writes. Stop/start like the wipes so no save is
+# mid-flight while files move and the engine releases the deleted state.
+gc_index_orphans() {
+  local bm_gen vec_gen f orphan_bytes=0 orphan_count=0 dest
+  [ -f "$STATE_DIR/mem%3Aindex%3Abm25.bin" ] || return 0
+  bm_gen=$(manifest_gen data)
+  vec_gen=$(manifest_gen vectors)
+  [[ "$bm_gen" == idx_* ]] || { log "index-gc: live generation unreadable; skip"; return 1; }
+  : "${vec_gen:=__none__}"
+  for f in "$STATE_DIR"/mem%3Aindex%3Abm25%3Abm25%3Aidx_*.bin \
+           "$STATE_DIR"/mem%3Aindex%3Abm25%3Avectors%3Aidx_*.bin \
+           "$STATE_DIR"/mem%3Aindex%3Abm25%3A*.bin.tmp; do
+    [ -e "$f" ] || continue
+    case "$f" in *"$bm_gen"*|*"$vec_gen"*) continue ;; esac
+    orphan_bytes=$((orphan_bytes + $(stat -c%s "$f")))
+    orphan_count=$((orphan_count + 1))
+  done
+  if [ "$orphan_bytes" -lt "$INDEX_GC_MIN_BYTES" ]; then
+    [ "$orphan_count" -gt 0 ] && log "index-gc: ${orphan_count} orphan shard(s) (${orphan_bytes}B) under ${INDEX_GC_MIN_BYTES}B; left in place"
+    return 0
+  fi
+  log "index-gc: ${orphan_count} orphan shards (${orphan_bytes}B); archiving (keeping $bm_gen / $vec_gen)"
+  snapshot "pre-index-gc"
+  agentmemory stop >/dev/null 2>&1; sleep 3
+  bm_gen=$(manifest_gen data); vec_gen=$(manifest_gen vectors)
+  [[ "$bm_gen" == idx_* ]] || { log "index-gc: live generation unreadable after stop; abort"; start_agentmemory; return 1; }
+  : "${vec_gen:=__none__}"
+  dest="$ARCHIVE_DIR/index-gc-$(date +%Y%m%d-%H%M%S)"; mkdir -p "$dest"
+  cp "$STATE_DIR/mem%3Aindex%3Abm25.bin" "$dest/manifest-backup.bin" 2>/dev/null
+  for f in "$STATE_DIR"/mem%3Aindex%3Abm25%3Abm25%3Aidx_*.bin \
+           "$STATE_DIR"/mem%3Aindex%3Abm25%3Avectors%3Aidx_*.bin \
+           "$STATE_DIR"/mem%3Aindex%3Abm25%3A*.bin.tmp; do
+    [ -e "$f" ] || continue
+    case "$f" in *"$bm_gen"*|*"$vec_gen"*) continue ;; esac
+    mv "$f" "$dest/"
+  done
+  start_agentmemory
+}
+
 prune() {
   local sem="$STATE_DIR/mem%3Asemantic.bin" sem_size graph_size graph_nodes_size insights_size
 
@@ -149,6 +213,8 @@ prune() {
     log "graph:nodes ${graph_nodes_size}B > soft cap; logical reset (extraction rebuilds)"
     snapshot "pre-graph-reset"; tri mem::graph-reset '{}'
   fi
+
+  gc_index_orphans
 
   local s f
   for s in procedural lessons crystals; do
