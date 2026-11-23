@@ -1,76 +1,43 @@
 #!/bin/bash
-# agentmemory housekeeper — hot-scope pruning.
+# agentmemory housekeeper — hot-scope pruning for agentmemory 0.9.33 +
+# iii v0.25.1.
 #
-# Works around these un-fixed upstream defects (verified on agentmemory
-# 0.9.29 + iii-engine v0.11.2). REMOVE/ADJUST the matching block when the
-# issue is fixed upstream:
+# The bridge-era failure mode is gone: large state/semantic/insight
+# reads are paged, reflect/export are bounded/paginated, and the iii
+# transport frame is 64MiB with a 60MiB safe budget
+# (src/state/frame-guard.ts). What still needs housekeeping:
 #
-#  [A] Unbounded KV scopes kill the iii bridge. Consolidation appends
-#      semantic facts to the mem:semantic scope forever (no entry/size cap),
-#      and list endpoints like api::semantic-list return the whole scope in
-#      one response (no pagination). Function results travel over the
-#      iii-engine bridge WebSocket, which has a message/heartbeat budget of
-#      a few MB; once a scope's serialized contents outgrow it, the engine
-#      stops the invocation and drops the worker connection. Symptoms:
-#      GET /agentmemory/semantic returns 500 "Invocation stopped", and the
-#      resulting re-registration churn can transiently break unrelated
-#      endpoints ("function_not_found" / 404 on sessions, memories, ...).
-#      - OPEN  https://github.com/rohitg00/agentmemory/issues/890
-#        (mesh/export unpaginated, same failure class)
-#      - OPEN  https://github.com/rohitg00/agentmemory/issues/1133
-#        (mem::reflect unbounded enumeration, same failure class)
-#      - No dedicated issue for api::semantic-list at time of writing; the
-#        pagination + side-index pattern that fixed the graph endpoints is
-#        closed: #753 (v0.9.25) and #814/#828 (v0.9.27).
-#      => the semantic retention tier below exists until list endpoints
-#         paginate or scopes get a hard cap.
+#  - mem:semantic writes are unbounded (no server-side size cap); the
+#    only control is retention-evict, server-capped at 1000 evictions
+#    per call (src/functions/retention.ts) — hence the soft cap +
+#    retention-score + dry-run + up-to-five evict loop below.
+#  - Graph scopes have no vacuum: mem::graph-reset re-initializes the
+#    active generation but keeps the old physical storage
+#    (physicalStorageRetained, src/functions/graph.ts), so only the
+#    physical wipe below reclaims disk; the wipe then runs graph-reset
+#    so the uninitialized store gets a ready generation/index
+#    (docs/reliability/graph-index-migration.md).
+#  - mem:insights decay is soft-delete only (src/functions/reflect.ts);
+#    nothing shrinks the physical file, so the hard cap below archives
+#    and restarts. Insights are derived state; future reflects rebuild.
 #
-#  [B] Graph scopes grow unbounded too, with no retention and no vacuum:
-#      graph extraction appends nodes/edges every session; reads stay
-#      bounded only while the side-indexes cover them, and boot backfill is
-#      skipped past ~25K nodes, after which reads fall back to full
-#      enumeration = defect [A]; and mem::graph-reset only marks rows as
-#      orphaned without deleting them (src/functions/graph.ts:973), so
-#      files keep growing even after logical resets. The graph is derived
-#      state (re-extracted from future sessions), so periodic resets are
-#      the safe size control.
-#      - REF   https://github.com/rohitg00/agentmemory/issues/309
-#        (SQLite-backed stores epic; sharded index half shipped in #764,
-#        capped graph reads still roadmap)
-#      => graph reset/wipe tiers below exist until capped reads work at
-#         any size and a physical vacuum lands.
+# Snapshots (mem::snapshot-create) include episodic memories, graph,
+# and observations — NOT semantic or insights
+# (src/functions/snapshot.ts) — so they gate only the evict and
+# graph-wipe paths; the insights and graph wipes keep their moved
+# files under $ARCHIVE_DIR.
 #
-#  [D] Retention-evict only started covering mem:semantic in v0.8.10
-#      (closed https://github.com/rohitg00/agentmemory/issues/124), which
-#      is why prune_semantic below is safe to use today.
-#
-#  [E] mem:insights is append-only: mem::reflect only ever writes it
-#      (src/functions/reflect.ts), and the sole kv.delete for the scope lives
-#      inside the import "replace" strategy (src/functions/export-import.ts)
-#      — retention-evict does NOT cover it (compare [D]). Observed 2026-08-14
-#      at 94MiB / 11,063 entries (~9KB avg): any full-scope enumeration then
-#      outgrows the bridge budget = defect [A], and in-run pruning never
-#      shrinks the physical file.
-#      - OPEN  https://github.com/rohitg00/agentmemory/issues/1133
-#        (mem::reflect unbounded enumeration, same failure class)
-#      => insights hard-cap tier below: physical archive + restart. Insights
-#         are derived state; future mem::reflect runs rebuild them, so no
-#         re-import step is required (recovery needs none, unlike [A]).
-#
-# Design note: snapshot-before-prune guarantees evicted/reset data stays
-# restorable from git history under $SNAPSHOT_DIR. Validation happens
-# dry-run-first and the snapshot is skipped when nothing would change, so
-# no-op passes do not bloat the snapshot history.
+# Design note: validation happens dry-run-first and the snapshot is
+# skipped when nothing would change, so no-op passes do not bloat the
+# snapshot history.
 set -u
 
 STATE_DIR=/data/state_store.db
 ARCHIVE_DIR=/data/archive
 
-SEM_SOFT_BYTES=$((4  * 1024 * 1024))   # mem:semantic -> retention-evict
-SEM_WARN_BYTES=$((12 * 1024 * 1024))   # mem:semantic approaching bridge-fatal zone ([A]; iii JSON envelope = 16MiB, retention-score result already dies over it)
-GRAPH_SOFT_BYTES=$((15 * 1024 * 1024)) # graph:nodes -> mem::graph-reset
-GRAPH_HARD_BYTES=$((30 * 1024 * 1024)) # all graph *.bin -> physical wipe
-INSIGHTS_HARD_BYTES=$((16 * 1024 * 1024)) # mem:insights -> physical archive (see [E]; <18.7MiB empirically-fatal on this stack, see lsn_8c7424da07feeb0b)
+SEM_SOFT_BYTES=$((4  * 1024 * 1024))       # mem:semantic -> retention-evict (writes unbounded; evict capped at 1000/call)
+GRAPH_HARD_BYTES=$((30 * 1024 * 1024))     # all graph *.bin -> physical wipe (no vacuum; reset retains storage)
+INSIGHTS_HARD_BYTES=$((16 * 1024 * 1024))  # mem:insights -> physical archive (decay is soft-delete only; conservative disk/working-set cap)
 EVICT_THRESHOLD=0.60                   # retention-score cutoff; lower = keep more. 0.55 never fired: live store's score floor measured 0.5501 (2026-10), so every prune pass evicted 0
 EVICT_MAX=1000                         # max evictions per retention-evict call (server-side cap, retention.ts)
 EVICT_LOOPS=5                          # bounded evict calls per pass; loop stops early when a call evicts 0
@@ -96,26 +63,32 @@ wait_healthy() {
   log "agentmemory not healthy after 5min; skipping pass"; return 1
 }
 
-# Propagates the iii trigger exit code (function errors exit non-zero, e.g.
-# invocation_stopped / function_not_found) so callers can gate destructive
-# steps on a restorable snapshot actually existing.
+# Fails closed: iii nonzero exit (function errors exit non-zero, e.g.
+# function_not_found), missing/non-JSON output, {success:false}, and the
+# success-but-"already in progress" case all count as failure. Only an
+# explicit success that is not already-in-progress passes, so callers
+# gate destructive steps on a snapshot actually existing. jq is
+# installed by the Dockerfile.
 snapshot() {
-  local out rc=0
+  local out rc=0 ok
   log "snapshot-create ($1)"
   out=$(tri_json mem::snapshot-create "{\"message\":\"agentmemory_housekeeper: $1\"}") || rc=$?
   printf '%s' "$out" | head -c 300; echo
-  return "$rc"
+  if [ "$rc" -ne 0 ]; then return "$rc"; fi
+  ok=$(printf '%s' "$out" | jq -r 'if (.success == true) and ((.message // "") | test("already in progress") | not) then "true" else "false" end' 2>/dev/null) || ok=false
+  [ "$ok" = "true" ] || return 1
 }
 
 # retention-score refreshes the persisted scores retention-evict consumes.
-# Past ~16MiB of scored entries its RESULT envelope exceeds the iii bridge
-# budget ([A]) and the trigger replies payload_too_large; the scores still
-# land server-side, so that reply is expected and non-fatal.
+# Past ~60MiB of scored entries its result envelope exceeds the iii
+# transport budget (64MiB frame, 60MiB safe budget) and the trigger
+# replies payload_too_large; the scores still land server-side, so that
+# reply is expected and non-fatal.
 prune_semantic() {
   local out n i
   out=$(tri mem::retention-score '{}')
   case "$out" in
-    *payload_too_large*) log "retention-score result exceeds bridge envelope; scores refreshed server-side (expected past ~16MiB, see [A])" ;;
+    *payload_too_large*) log "retention-score result exceeds transport envelope (64MiB frame / 60MiB safe budget); scores refreshed server-side" ;;
     *) printf '%s\n' "$out" ;;
   esac
 
@@ -151,16 +124,33 @@ start_agentmemory() {
   wait_healthy || return 1
 }
 
+# Physical graph wipe: archive every graph scope, restart, then run
+# mem::graph-reset so the freshly wiped (uninitialized) store gets a
+# ready generation/index. The reset itself retains physical storage —
+# the mv above is what reclaims disk; the reset only re-initializes. A
+# failed reset leaves the graph store uninitialized, so it is logged
+# and returned nonzero, never swallowed.
 wipe_graph() {
-  local dest
+  local dest out rc=0 ok
   dest="$ARCHIVE_DIR/graph-$(date +%Y%m%d-%H%M%S)"
   agentmemory stop >/dev/null 2>&1; sleep 3
   mkdir -p "$dest"; mv "$STATE_DIR"/mem%3Agraph%3A*.bin "$dest/" 2>/dev/null
-  start_agentmemory
+  start_agentmemory || return 1
+  out=$(tri_json mem::graph-reset '{}') || rc=$?
+  printf '%s' "$out" | head -c 300; echo
+  ok=$(printf '%s' "$out" | jq -r 'if .success == true then "true" else "false" end' 2>/dev/null) || ok=false
+  if [ "$rc" -eq 0 ] && [ "$ok" = "true" ]; then
+    log "graph generation re-initialized after wipe"
+    return 0
+  fi
+  log "graph-reset after wipe failed (rc=$rc); graph store left uninitialized — run mem::graph-reset manually"
+  return 1
 }
 
-# [E] physical prune for mem:insights — the scope has no logical eviction
-# path, so over hard-cap it is archived and re-derived by future reflects.
+# Physical prune for mem:insights — decay is soft-delete only and no
+# logical eviction covers the scope, so over hard-cap it is archived
+# (the archive retains the moved scope) and re-derived by future
+# reflects. No snapshot gate: snapshots omit insights.
 wipe_insights() {
   local dest
   dest="$ARCHIVE_DIR/insights-$(date +%Y%m%d-%H%M%S)"
@@ -170,32 +160,29 @@ wipe_insights() {
 }
 
 prune() {
-  local sem="$STATE_DIR/mem%3Asemantic.bin" sem_size graph_size graph_nodes_size insights_size
+  local sem="$STATE_DIR/mem%3Asemantic.bin" sem_size graph_size insights_size
 
   sem_size=$(size "$sem")
   graph_size=$(size "$STATE_DIR"/mem%3Agraph%3A*.bin)
-  graph_nodes_size=$(size "$STATE_DIR/mem%3Agraph%3Anodes.bin")
   insights_size=$(size "$STATE_DIR/mem%3Ainsights.bin")
 
   if [ "$sem_size" -gt "$SEM_SOFT_BYTES" ]; then
     log "mem:semantic ${sem_size}B > soft cap; retention prune"
-    if [ "$sem_size" -gt "$SEM_WARN_BYTES" ]; then
-      log "WARNING: mem:semantic ${sem_size}B > ${SEM_WARN_BYTES}B; full-scope enumerations (semantic-list/reflect/export, see [A]) already fail at this size; retention pruning alone will not clear the bridge-fatal zone"
-    fi
     prune_semantic
   fi
 
   if [ "$insights_size" -gt "$INSIGHTS_HARD_BYTES" ]; then
-    log "mem:insights ${insights_size}B > hard cap; physical archive (derived scope; reflect rebuilds)"
-    if snapshot "pre-insights-wipe"; then wipe_insights; else log "snapshot failed; insights wipe aborted"; fi
+    log "mem:insights ${insights_size}B > hard cap; physical archive (derived scope; reflect rebuilds; snapshots omit insights)"
+    wipe_insights
   fi
 
   if [ "$graph_size" -gt "$GRAPH_HARD_BYTES" ]; then
     log "graph scopes ${graph_size}B > hard cap; physical wipe"
-    if snapshot "pre-graph-wipe"; then wipe_graph; else log "snapshot failed; graph wipe aborted"; fi
-  elif [ "$graph_nodes_size" -gt "$GRAPH_SOFT_BYTES" ]; then
-    log "graph:nodes ${graph_nodes_size}B > soft cap; logical reset (extraction rebuilds)"
-    if snapshot "pre-graph-reset"; then tri mem::graph-reset '{}'; else log "snapshot failed; graph reset aborted"; fi
+    if snapshot "pre-graph-wipe"; then
+      wipe_graph || log "graph wipe/reset failed; graph store may be uninitialized — see errors above"
+    else
+      log "snapshot failed; graph wipe aborted"
+    fi
   fi
 
   local s f

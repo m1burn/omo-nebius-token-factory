@@ -11,11 +11,24 @@ ARG HOST_GID
 # aborts the build instead of being masked
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN apt-get update && apt-get install -y --no-install-recommends tmux git diffutils curl unzip xz-utils ca-certificates python3 python3-pip gosu inotify-tools jq procps shellcheck && \
+RUN apt-get update && apt-get install -y --no-install-recommends tmux diffutils curl unzip xz-utils ca-certificates python3 python3-pip gosu inotify-tools jq procps shellcheck && \
     rm -rf /var/lib/apt/lists/*
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh 
+
+# Install Git >=2.48 from conda-forge so `git worktree add
+# --relative-paths` works; Debian's git is older.
+RUN case "$TARGETARCH" in \
+      arm64) mmarch=linux-aarch64 ;; \
+      amd64) mmarch=linux-64 ;; \
+      *) echo "Unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+    esac && \
+    curl -fsSL "https://github.com/mamba-org/micromamba-releases/releases/download/2.10.0-0/micromamba-${mmarch}" -o /tmp/mm && \
+    chmod +x /tmp/mm && \
+    MAMBA_ROOT_PREFIX=/tmp/mr /tmp/mm create -y -p /opt/git -c conda-forge git && \
+    rm -rf /tmp/mm /tmp/mr
+ENV PATH="/opt/git/bin:${PATH}"
 
 # Install Azure CLI and Python packages
 ENV AZURE_CORE_COLLECT_TELEMETRY=false
@@ -62,7 +75,7 @@ RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh &&
 
 # Install iii for agentmemory.
 RUN case "$TARGETARCH" in arm64) III_ARCH=iii-aarch64-unknown-linux-gnu;; amd64) III_ARCH=iii-x86_64-unknown-linux-gnu;; *) echo "Unsupported: $TARGETARCH" >&2 && exit 1;; esac && \
-    curl -fsSL "https://github.com/iii-hq/iii/releases/download/iii/v0.25.0/${III_ARCH}.tar.gz" | tar -xz -C /usr/local/bin/
+    curl -fsSL "https://github.com/iii-hq/iii/releases/download/iii/v0.25.1/${III_ARCH}.tar.gz" | tar -xz -C /usr/local/bin/
 
 # Install tools from GitHub releases
 # github_install <repo> <asset-pattern> <binary> <arm64-token> <amd64-token>
@@ -113,6 +126,9 @@ RUN git config --system --add safe.directory /data/snapshots && \
 USER ${HOST_UID}:${HOST_GID}
 WORKDIR /home/omo
 
+# Configure git
+RUN git config --global worktree.useRelativePaths true
+
 # Configure opencode
 COPY --chown=${HOST_UID}:${HOST_GID} opencode.json /home/omo/.config/opencode/opencode.json
 COPY --chown=${HOST_UID}:${HOST_GID} AGENTS.md /home/omo/.config/opencode/AGENTS.md
@@ -123,12 +139,12 @@ COPY --chown=${HOST_UID}:${HOST_GID} omo.jsonc /home/omo/.omo/omo.jsonc
 # Configure agentmemory
 RUN mkdir -p /home/omo/.agentmemory
 COPY --chown=${HOST_UID}:${HOST_GID} agentmemory-housekeeper.sh /usr/local/bin/agentmemory_housekeeper
-RUN chmod +x /usr/local/bin/agentmemory_housekeeper
 
 # Pre-download the local embedding model into the transformers cache so
 # EMBEDDING_PROVIDER=local serves semantic recall on first boot instead of
 # fetching ~23MB from HuggingFace at first use
-RUN node --input-type=module -e \
+RUN chmod +x /usr/local/bin/agentmemory_housekeeper && \
+    node --input-type=module -e \
     'const t = await import("/usr/local/lib/node_modules/@huggingface/transformers/dist/transformers.node.mjs"); await t.pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", { dtype: "q8" });'
 
 # Copy agentmemory opencode plugin and commands

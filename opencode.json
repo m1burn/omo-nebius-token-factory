@@ -7,33 +7,6 @@
   "provider": {
     "nebius": {
       "models": {
-        "deepseek-ai/DeepSeek-V4.1-Flash": {
-          "name": "DeepSeek-V4.1-Flash",
-          "family": "DeepSeek-V4.1",
-          "release_date": "2026-09-10",
-          "attachment": false,
-          "reasoning": true,
-          "tool_call": true,
-          "temperature": false,
-          "cost": {
-            "input": 0.30,
-            "output": 1.20
-          },
-          "limit": {
-            "context": 1000000,
-            "input": 1000000,
-            "output": 393000
-          },
-          "modalities": {
-            "input": [
-              "text",
-              "image"
-            ],
-            "output": [
-              "text"
-            ]
-          }
-        },
         "deepseek-ai/DeepSeek-V4.1-Flash-1017": {
           "name": "DeepSeek-V4.1-Flash-1017",
           "family": "DeepSeek-V4.1",
@@ -55,32 +28,6 @@
             "input": [
               "text",
               "image"
-            ],
-            "output": [
-              "text"
-            ]
-          }
-        },
-        "deepseek-ai/DeepSeek-V4-Flash-0731": {
-          "name": "DeepSeek-V4-Flash-0731",
-          "family": "DeepSeek-V4",
-          "release_date": "2026-07-31",
-          "attachment": false,
-          "reasoning": true,
-          "tool_call": true,
-          "temperature": false,
-          "cost": {
-            "input": 0.14,
-            "output": 0.28
-          },
-          "limit": {
-            "context": 1000000,
-            "input": 1000000,
-            "output": 110000
-          },
-          "modalities": {
-            "input": [
-              "text"
             ],
             "output": [
               "text"
@@ -159,36 +106,6 @@
             "context": 900000,
             "input": 900000,
             "output": 900000
-          },
-          "modalities": {
-            "input": [
-              "text",
-              "image"
-            ],
-            "output": [
-              "text"
-            ]
-          },
-          "interleaved": {
-            "field": "reasoning_content"
-          }
-        },
-        "moonshotai/Kimi-K2.7-Code": {
-          "name": "Kimi-K2.7-Code",
-          "family": "kimi",
-          "release_date": "2026-06-12",
-          "attachment": true,
-          "reasoning": true,
-          "tool_call": true,
-          "temperature": true,
-          "cost": {
-            "input": 0.95,
-            "output": 4
-          },
-          "limit": {
-            "context": 256000,
-            "input": 220000,
-            "output": 110000
           },
           "modalities": {
             "input": [

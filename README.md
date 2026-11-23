@@ -14,9 +14,9 @@ AI-assisted software engineering. It includes:
 - **agentmemory** — Persistent memory across sessions with semantic
   search and knowledge graph
 - **Nebius Token Factory** — Pre-configured with Kimi-K3.1-Pro,
-  Kimi-K3, Kimi-K2.7-Code, GLM-5.3, GLM-5.3-Flash,
-  DeepSeek-V4.1-Flash-1017, DeepSeek-V4-Flash-0731,
-  DeepSeek-V4.1-Flash, MiniMax-M3, and Muse-Spark-Open models
+  Kimi-K3, GLM-5.3, GLM-5.3-Flash, DeepSeek-V4.1-Flash-1017,
+  MiniMax-M3, Muse-Spark-Open, and MiniMax-M3.1-Flash (agentmemory)
+  models
 
 ## Purpose
 
@@ -153,31 +153,34 @@ credentials automatically.
 | agentmemory | latest |
 | codegraph | latest |
 | Playwright + Chromium | latest |
-| iii | 0.22.1 |
+| iii | 0.25.1 |
 
 ### Configured Models
 
 - **Kimi-K3.1-Pro**: Main session model. Used by Sisyphus (and ultrawork),
-  Atlas, Sisyphus-Junior, Multimodal-Looker, Prometheus, and Metis, plus
+  Atlas, Sisyphus-Junior, Prometheus, Metis, and Multimodal-Looker, plus
   the `visual-engineering`, `artistry`, and `writing` categories for
   planning, architecture, and high-context reasoning tasks.
+- **Kimi-K3**: Fallback rung for Sisyphus, Prometheus, Metis, and the
+  `visual-engineering` and `artistry` categories when Kimi-K3.1-Pro is
+  unavailable.
 - **GLM-5.3**: Used by Oracle, Momus, and the `ultrabrain`, `deep-low`,
-  `deep-high`, and `unspecified-high` categories for complex reasoning,
-  planning, and review tasks. Fastest strong reasoner on the platform
-  (455 tok/s). Also the fallback for every Kimi-K3.1-Pro role except
-  multimodal-looker (GLM models serve text-only on this platform, so
-  they cannot take the vision lane).
-- **Muse-Spark-Open**: Primary model for multimodal-looker — the only
-  roster model that takes video and audio, with the strongest visual
-  reasoning on the platform. Pinned at low reasoning so its always-on
-  thinking stays out of the way of simple image descriptions. Falls
-  back to Kimi-K3.1-Pro when Muse is unavailable.
-- **Kimi-K2.7-Code**: Used by the `unspecified-low` category as the
-  catch-all worker — a fast (231 tok/s) code-specialized executor.
-- **DeepSeek-V4.1-Flash-1017**: Used by Librarian, Explore, and the `quick`
-  category for high-throughput search and simple tasks, with
-  **GLM-5.3-Flash** as the cheap fallback rung.
-- **MiniMax-M3**: Default model for agentmemory operations.
+  and `deep-high` categories for complex reasoning, planning, and review
+  tasks. GLM-5.3 stands in as the best-effort available reasoner,
+  not a source-backed equivalent. Also the first rung for `unspecified-high`,
+  the model for the `unspecified-low` worker lane, and the fallback for
+  Sisyphus, Prometheus, Metis, and the `writing` category.
+- **Muse-Spark-Open**: Off-chain fallback for multimodal-looker (behind
+  Kimi-K3.1-Pro), picked locally for its image input. Pinned at low
+  reasoning so its always-on thinking stays out of the way of simple
+  image descriptions.
+- **DeepSeek-V4.1-Flash-1017**: Used by Librarian, Explore, and the
+  `quick` category for high-throughput search and simple tasks.
+- **MiniMax-M3**: Fallback rung for Librarian, Explore, Atlas,
+  Sisyphus-Junior, and the `quick` category.
+- **GLM-5.3-Flash**: Final fallback rung for the `quick` category.
+- **MiniMax-M3.1-Flash**: Memory model for agentmemory operations (set
+  via `OPENAI_MODEL` in `.env.agentmemory`).
 
 ## Quality gates
 
