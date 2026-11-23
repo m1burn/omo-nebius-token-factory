@@ -15,8 +15,8 @@ AI-assisted software engineering. It includes:
   search and knowledge graph
 - **Nebius Token Factory** — Pre-configured with Kimi-K3.1-Pro,
   Kimi-K3, GLM-5.3, GLM-5.3-Flash, DeepSeek-V4.1-Flash-1017,
-  MiniMax-M3, Muse-Spark-Open, and MiniMax-M3.1-Flash (agentmemory)
-  models
+  MiniMax-M3, Muse-Spark-Open, and Qwen3-30B-A3B-Instruct-2507
+  (agentmemory) models
 
 ## Purpose
 
@@ -179,8 +179,9 @@ credentials automatically.
 - **MiniMax-M3**: Fallback rung for Librarian, Explore, Atlas,
   Sisyphus-Junior, and the `quick` category.
 - **GLM-5.3-Flash**: Final fallback rung for the `quick` category.
-- **MiniMax-M3.1-Flash**: Memory model for agentmemory operations (set
-  via `OPENAI_MODEL` in `.env.agentmemory`).
+- **Qwen3-30B-A3B-Instruct-2507**: Memory model for agentmemory
+  operations (set via
+  `OPENAI_MODEL=Qwen/Qwen3-30B-A3B-Instruct-2507` in `.env.agentmemory`).
 
 ## Quality gates
 
